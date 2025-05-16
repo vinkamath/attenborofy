@@ -23,6 +23,7 @@ if not API_KEY:
     raise ValueError("ELEVENLABS_API_KEY environment variable is required")
 
 # Voice ID kept in the application code
+VOICE_ID = 'jvcMcno3QtjOzGtfpjoI' # Best David voice
 VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'  # Test voice ID
 
 @app.route('/', methods=['GET', 'POST'])
