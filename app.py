@@ -22,9 +22,14 @@ if not API_KEY:
     logger.error("ELEVENLABS_API_KEY environment variable is not set")
     raise ValueError("ELEVENLABS_API_KEY environment variable is required")
 
+TEST_VOICE = os.getenv('TEST_VOICE')
+VOICE_ID = os.getenv('VOICE_ID')
+if not VOICE_ID:
 # Voice ID kept in the application code
-VOICE_ID = 'jvcMcno3QtjOzGtfpjoI' # Best David voice
-VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'  # Test voice ID
+    if TEST_VOICE:
+        VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'  # Test voice ID
+    else:
+        VOICE_ID = 'jvcMcno3QtjOzGtfpjoI' # Best David voice
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
