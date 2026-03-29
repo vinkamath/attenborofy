@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "https://riffle-eastus2-resource.openai.azure.com/openai/v1/")
-AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5.3-chat")
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
 VOICE_ID = os.getenv("VOICE_ID") or ""
 
@@ -110,10 +110,17 @@ def analyze_and_narrate(
     frames: list[str], duration: float, user_context: str
 ) -> str:
     """Use Azure OpenAI vision to analyze frames and generate Attenborough narration."""
-    client = OpenAI(
-        api_key=AZURE_OPENAI_API_KEY,
-        base_url=AZURE_OPENAI_ENDPOINT,
-    )
+    api_key = (AZURE_OPENAI_API_KEY or "").strip()
+    base_url = (AZURE_OPENAI_ENDPOINT or "").strip()
+    deployment = (AZURE_OPENAI_DEPLOYMENT or "").strip()
+    if not api_key:
+        raise ValueError("AZURE_OPENAI_API_KEY must be set in the environment.")
+    if not base_url:
+        raise ValueError("AZURE_OPENAI_ENDPOINT must be set in the environment.")
+    if not deployment:
+        raise ValueError("AZURE_OPENAI_DEPLOYMENT must be set in the environment.")
+
+    client = OpenAI(api_key=api_key, base_url=base_url)
 
     # Target ~1.8 words per second for unhurried Attenborough pacing
     target_words = int(duration * 1.8)
@@ -173,12 +180,15 @@ def analyze_and_narrate(
     ]
 
     response = client.chat.completions.create(
-        model=AZURE_OPENAI_DEPLOYMENT,
+        model=deployment,
         messages=messages,
         max_completion_tokens=1000,
     )
 
-    narration = response.choices[0].message.content.strip()
+    raw = response.choices[0].message.content
+    if not raw:
+        raise ValueError("OpenAI returned empty narration content.")
+    narration = raw.strip()
     logger.info(f"Generated narration: {len(narration.split())} words (target: {target_words})")
     return narration
 
@@ -198,10 +208,19 @@ def text_to_speech(text: str, voice_id: str | None = None) -> str:
 
     If voice_id is omitted, uses VOICE_ID from the environment.
     """
-    api_key = os.getenv("ELEVENLABS_API_KEY") or ELEVENLABS_API_KEY
-    client = ElevenLabs(api_key=api_key)
-    vid = voice_id if voice_id is not None else VOICE_ID
+    api_key = (os.getenv("ELEVENLABS_API_KEY") or ELEVENLABS_API_KEY or "").strip()
+    if not api_key:
+        raise ValueError("ELEVENLABS_API_KEY must be set in the environment.")
 
+    vid = (voice_id if voice_id is not None else VOICE_ID) or ""
+    vid = vid.strip()
+    if not vid:
+        raise ValueError(
+            "VOICE_ID must be set in the environment when voice_id is not passed, "
+            "or pass a non-empty voice_id."
+        )
+
+    client = ElevenLabs(api_key=api_key)
     response = client.text_to_speech.convert(
         voice_id=vid,
         output_format="mp3_44100_128",

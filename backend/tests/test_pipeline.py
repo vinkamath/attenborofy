@@ -61,8 +61,10 @@ def test_text_to_speech_converts_via_elevenlabs_api():
     Real ElevenLabs call. Fails if the API rejects the request (e.g. 402) or returns no audio.
     Mocked TTS tests always pass; this one fails when TTS cannot actually run.
     """
-    if not os.getenv("ELEVENLABS_API_KEY"):
-        pytest.skip("ELEVENLABS_API_KEY not set — cannot verify TTS without credentials")
+    if not os.getenv("ELEVENLABS_API_KEY") or not (os.getenv("VOICE_ID") or "").strip():
+        pytest.skip(
+            "ELEVENLABS_API_KEY and VOICE_ID must be set — cannot verify default-voice TTS"
+        )
 
     try:
         path = p.text_to_speech("Hi.")

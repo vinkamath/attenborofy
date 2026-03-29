@@ -3,13 +3,19 @@ import logging
 import os
 import tempfile
 import uuid
+from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-load_dotenv()
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(_REPO_ROOT / ".env")
+
+from required_env import validate_required_env
+
+validate_required_env(_REPO_ROOT / ".env.example")
 
 from jobs import JobStore, start_cleanup_timer, start_job
 
