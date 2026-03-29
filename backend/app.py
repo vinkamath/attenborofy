@@ -17,6 +17,7 @@ from required_env import validate_required_env
 
 validate_required_env(_REPO_ROOT / ".env.example")
 
+from app_config import CONFIG
 from jobs import JobStore, start_cleanup_timer, start_job
 
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +42,17 @@ def allowed_file(filename: str) -> bool:
 
 
 # ── API Routes ──────────────────────────────────────────────────────────────
+
+
+@app.route("/api/config")
+def public_config():
+    """Non-secret limits for the web client (voice_id stays server-side only)."""
+    return jsonify(
+        {
+            "video_min_duration_seconds": CONFIG.video_min_duration_seconds,
+            "video_max_duration_seconds": CONFIG.video_max_duration_seconds,
+        }
+    )
 
 
 @app.route("/api/upload", methods=["POST"])

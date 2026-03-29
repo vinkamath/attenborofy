@@ -19,7 +19,7 @@ import pipeline as p
 
 _TTS_SAMPLES_DIR = Path(__file__).resolve().parent / "tts_samples"
 
-# Short line for TTS; voice IDs are ElevenLabs voice IDs (set VOICE_ID in .env for default path).
+# Short line for TTS; voice IDs are ElevenLabs voice IDs (default voice comes from config.json).
 _TTS_SAMPLE = "The forest breathes at dawn."
 _VOICE_IDS_FOR_INTEGRATION = (
     #"JBFqnCBsd6RMkjVDRZzb",  # free-tier test voice
@@ -61,9 +61,9 @@ def test_text_to_speech_converts_via_elevenlabs_api():
     Real ElevenLabs call. Fails if the API rejects the request (e.g. 402) or returns no audio.
     Mocked TTS tests always pass; this one fails when TTS cannot actually run.
     """
-    if not os.getenv("ELEVENLABS_API_KEY") or not (os.getenv("VOICE_ID") or "").strip():
+    if not os.getenv("ELEVENLABS_API_KEY") or not p.VOICE_ID.strip():
         pytest.skip(
-            "ELEVENLABS_API_KEY and VOICE_ID must be set — cannot verify default-voice TTS"
+            "ELEVENLABS_API_KEY must be set and config.json must define voice_id — cannot verify default-voice TTS"
         )
 
     try:
@@ -72,7 +72,7 @@ def test_text_to_speech_converts_via_elevenlabs_api():
         if e.status_code == 402:
             pytest.fail(
                 f"ElevenLabs 402 Payment Required: voice '{p.VOICE_ID}' needs a paid plan. "
-                f"Set VOICE_ID in .env to a voice your plan allows. Detail: {p._elevenlabs_error_message(e)}"
+                f"Set voice_id in config.json to a voice your plan allows. Detail: {p._elevenlabs_error_message(e)}"
             )
         raise
 

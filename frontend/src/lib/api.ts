@@ -16,6 +16,17 @@ export interface GalleryItem {
   thumbnail: string;
 }
 
+export interface PublicAppConfig {
+  video_min_duration_seconds: number;
+  video_max_duration_seconds: number;
+}
+
+export async function getPublicAppConfig(): Promise<PublicAppConfig> {
+  const res = await fetch("/api/config");
+  if (!res.ok) throw new Error("Failed to load app config");
+  return res.json();
+}
+
 export async function uploadVideo(
   file: File,
   context: string,

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,10 +10,15 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { uploadVideo } from "@/lib/api";
+import { getPublicAppConfig, uploadVideo } from "@/lib/api";
 
-const MAX_DURATION = 60;
+const DEFAULT_LIMITS = { min: 0, max: 60 };
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/x-matroska"];
+
+function durationRangeLabel(min: number, max: number): string {
+  if (min <= 0) return `Max ${max} seconds`;
+  return `${min}–${max} seconds`;
+}
 
 export default function VideoUpload() {
   const navigate = useNavigate();
@@ -26,37 +31,63 @@ export default function VideoUpload() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
+  const [durationLimits, setDurationLimits] = useState(DEFAULT_LIMITS);
 
-  const validateAndSetFile = useCallback((f: File) => {
-    setError(null);
+  useEffect(() => {
+    getPublicAppConfig()
+      .then((c) =>
+        setDurationLimits({
+          min: c.video_min_duration_seconds,
+          max: c.video_max_duration_seconds,
+        })
+      )
+      .catch(() => {
+        /* dev without API: keep defaults */
+      });
+  }, []);
 
-    if (!ACCEPTED_TYPES.includes(f.type) && !f.name.match(/\.(mp4|mov|webm|avi|mkv)$/i)) {
-      setError("Please upload a video file (mp4, mov, webm, avi, mkv).");
-      return;
-    }
+  const validateAndSetFile = useCallback(
+    (f: File) => {
+      setError(null);
 
-    // Check duration via <video> element
-    const url = URL.createObjectURL(f);
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(url);
-      if (video.duration > MAX_DURATION) {
-        setError(
-          `Video is ${Math.round(video.duration)}s. Maximum is ${MAX_DURATION} seconds.`
-        );
+      if (!ACCEPTED_TYPES.includes(f.type) && !f.name.match(/\.(mp4|mov|webm|avi|mkv)$/i)) {
+        setError("Please upload a video file (mp4, mov, webm, avi, mkv).");
         return;
       }
-      setDuration(Math.round(video.duration));
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
-    };
-    video.onerror = () => {
-      URL.revokeObjectURL(url);
-      setError("Could not read video file.");
-    };
-    video.src = url;
-  }, []);
+
+      const { min: minSec, max: maxSec } = durationLimits;
+
+      // Check duration via <video> element
+      const url = URL.createObjectURL(f);
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(url);
+        const d = video.duration;
+        if (minSec > 0 && d < minSec) {
+          setError(
+            `Video is ${Math.round(d)}s. Minimum is ${minSec} seconds.`
+          );
+          return;
+        }
+        if (d > maxSec) {
+          setError(
+            `Video is ${Math.round(d)}s. Maximum is ${maxSec} seconds.`
+          );
+          return;
+        }
+        setDuration(Math.round(d));
+        setFile(f);
+        setPreview(URL.createObjectURL(f));
+      };
+      video.onerror = () => {
+        URL.revokeObjectURL(url);
+        setError("Could not read video file.");
+      };
+      video.src = url;
+    },
+    [durationLimits]
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -98,7 +129,7 @@ export default function VideoUpload() {
           Narrate Your Video
         </h1>
         <p className="text-muted-foreground text-lg">
-          Upload a video (up to 60s) and get it narrated in the style of Sir
+          Upload a video ({durationRangeLabel(durationLimits.min, durationLimits.max)}) and get it narrated in the style of Sir
           David Attenborough.
         </p>
       </div>
@@ -133,7 +164,8 @@ export default function VideoUpload() {
                   Drop your video here or click to browse
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  MP4, MOV, WebM, AVI, MKV &middot; Max 60 seconds
+                  MP4, MOV, WebM, AVI, MKV &middot;{" "}
+                  {durationRangeLabel(durationLimits.min, durationLimits.max)}
                 </p>
                 <input
                   ref={fileInputRef}

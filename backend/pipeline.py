@@ -11,6 +11,8 @@ from elevenlabs import ElevenLabs, VoiceSettings
 from elevenlabs.core.api_error import ApiError
 from openai import OpenAI
 
+from app_config import CONFIG
+
 try:
     from dotenv import load_dotenv
 except ImportError:
@@ -27,7 +29,7 @@ AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
-VOICE_ID = os.getenv("VOICE_ID") or ""
+VOICE_ID = CONFIG.voice_id
 
 
 def validate_video(path: str) -> tuple[bool, float, str]:
@@ -52,8 +54,20 @@ def validate_video(path: str) -> tuple[bool, float, str]:
         info = json.loads(result.stdout)
         duration = float(info["format"]["duration"])
 
-        if duration > 60:
-            return False, duration, f"Video is {duration:.0f}s long. Maximum is 60 seconds."
+        vmin = CONFIG.video_min_duration_seconds
+        vmax = CONFIG.video_max_duration_seconds
+        if duration < vmin:
+            return (
+                False,
+                duration,
+                f"Video is {duration:.1f}s long. Minimum is {vmin:g} seconds.",
+            )
+        if duration > vmax:
+            return (
+                False,
+                duration,
+                f"Video is {duration:.0f}s long. Maximum is {vmax:g} seconds.",
+            )
 
         has_video = any(s["codec_type"] == "video" for s in info.get("streams", []))
         if not has_video:
@@ -206,7 +220,7 @@ def _elevenlabs_error_message(exc: ApiError) -> str:
 def text_to_speech(text: str, voice_id: str | None = None) -> str:
     """Convert text to speech using ElevenLabs. Returns path to MP3 file.
 
-    If voice_id is omitted, uses VOICE_ID from the environment.
+    If voice_id is omitted, uses voice_id from config.json (see VOICE_ID).
     """
     api_key = (os.getenv("ELEVENLABS_API_KEY") or ELEVENLABS_API_KEY or "").strip()
     if not api_key:
@@ -216,7 +230,7 @@ def text_to_speech(text: str, voice_id: str | None = None) -> str:
     vid = vid.strip()
     if not vid:
         raise ValueError(
-            "VOICE_ID must be set in the environment when voice_id is not passed, "
+            "voice_id must be set in config.json when voice_id is not passed, "
             "or pass a non-empty voice_id."
         )
 
@@ -226,7 +240,7 @@ def text_to_speech(text: str, voice_id: str | None = None) -> str:
         output_format="mp3_44100_128",
         text=text,
         model_id="eleven_multilingual_v2",
-        voice_settings=VoiceSettings(speed=0.9),
+        voice_settings=VoiceSettings(speed=0.85),
     )
 
     audio_path = os.path.join(tempfile.gettempdir(), f"attenborofy_narration_{os.getpid()}_{id(text)}.mp3")

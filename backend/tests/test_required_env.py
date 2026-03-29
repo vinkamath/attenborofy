@@ -19,7 +19,6 @@ def test_env_keys_from_example_matches_checked_in_file():
         "AZURE_OPENAI_API_KEY",
         "AZURE_OPENAI_ENDPOINT",
         "AZURE_OPENAI_DEPLOYMENT",
-        "VOICE_ID",
     ]
 
 
