@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from elevenlabs import ElevenLabs
+from elevenlabs import ElevenLabs, VoiceSettings
 from elevenlabs.core.api_error import ApiError
 from openai import OpenAI
 
@@ -27,13 +27,7 @@ AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "https://riffle-eastus2-resource.openai.azure.com/openai/v1/")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5.3-chat")
 
-TEST_VOICE = os.getenv("TEST_VOICE")
-VOICE_ID = os.getenv("VOICE_ID")
-if not VOICE_ID:
-    if TEST_VOICE:
-        VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"
-    else:
-        VOICE_ID = "fjnwTZkKtQOJaYzGLa6n"
+VOICE_ID = os.getenv("VOICE_ID") or ""
 
 
 def validate_video(path: str) -> tuple[bool, float, str]:
@@ -121,8 +115,8 @@ def analyze_and_narrate(
         base_url=AZURE_OPENAI_ENDPOINT,
     )
 
-    # Target ~2.5 words per second for natural narration pacing
-    target_words = int(duration * 2.5)
+    # Target ~1.8 words per second for unhurried Attenborough pacing
+    target_words = int(duration * 1.8)
 
     context_section = ""
     if user_context.strip():
@@ -167,6 +161,8 @@ def analyze_and_narrate(
                         f"{context_section}\n\n"
                         f"Write a narration of approximately {target_words} words "
                         f"(this is important for timing — the narration must fit within {duration:.0f} seconds). "
+                        "Aim slightly under the word count to leave room for natural pauses. "
+                        "It is critical that the narration ends with a complete sentence — never cut off mid-thought. "
                         "Write ONLY the narration text, nothing else. No stage directions, "
                         "no timestamps, no parentheticals. Just the words David Attenborough would speak."
                     ),
@@ -197,16 +193,21 @@ def _elevenlabs_error_message(exc: ApiError) -> str:
     return str(body)
 
 
-def text_to_speech(text: str) -> str:
-    """Convert text to speech using ElevenLabs. Returns path to MP3 file."""
+def text_to_speech(text: str, voice_id: str | None = None) -> str:
+    """Convert text to speech using ElevenLabs. Returns path to MP3 file.
+
+    If voice_id is omitted, uses VOICE_ID from the environment.
+    """
     api_key = os.getenv("ELEVENLABS_API_KEY") or ELEVENLABS_API_KEY
     client = ElevenLabs(api_key=api_key)
+    vid = voice_id if voice_id is not None else VOICE_ID
 
     response = client.text_to_speech.convert(
-        voice_id=VOICE_ID,
+        voice_id=vid,
         output_format="mp3_44100_128",
         text=text,
         model_id="eleven_multilingual_v2",
+        voice_settings=VoiceSettings(speed=0.9),
     )
 
     audio_path = os.path.join(tempfile.gettempdir(), f"attenborofy_narration_{os.getpid()}_{id(text)}.mp3")
@@ -312,6 +313,8 @@ def compose_video(
         "-map", "0:v",
         "-map", "[aout]",
         "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-profile:v", "high",
         "-preset", "fast",
         "-crf", "23",
         "-c:a", "aac",
@@ -339,6 +342,8 @@ def compose_video(
             "-map", "0:v",
             "-map", "[aout]",
             "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-profile:v", "high",
             "-preset", "fast",
             "-crf", "23",
             "-c:a", "aac",
