@@ -16,6 +16,9 @@ def test_load_config_reads_repo_defaults():
     assert cfg.voice_id
     assert cfg.video_min_duration_seconds >= 0
     assert cfg.video_max_duration_seconds >= cfg.video_min_duration_seconds
+    assert 0.0 <= cfg.tts_similarity_boost <= 1.0
+    assert 0.0 <= cfg.tts_stability <= 1.0
+    assert cfg.tts_speed > 0.0
 
 
 def test_load_config_rejects_empty_voice_id(tmp_path: Path):
@@ -26,6 +29,9 @@ def test_load_config_rejects_empty_voice_id(tmp_path: Path):
                 "voice_id": "  ",
                 "video_min_duration_seconds": 0,
                 "video_max_duration_seconds": 60,
+                "tts_similarity_boost": 0.75,
+                "tts_stability": 0.75,
+                "tts_speed": 0.85,
             }
         ),
         encoding="utf-8",
@@ -42,6 +48,9 @@ def test_load_config_rejects_max_below_min(tmp_path: Path):
                 "voice_id": "abc",
                 "video_min_duration_seconds": 10,
                 "video_max_duration_seconds": 5,
+                "tts_similarity_boost": 0.75,
+                "tts_stability": 0.75,
+                "tts_speed": 0.85,
             }
         ),
         encoding="utf-8",

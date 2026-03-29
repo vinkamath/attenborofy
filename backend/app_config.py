@@ -14,6 +14,9 @@ class AppConfig:
     voice_id: str
     video_min_duration_seconds: float
     video_max_duration_seconds: float
+    tts_similarity_boost: float
+    tts_stability: float
+    tts_speed: float
 
 
 def load_config(path: Path | None = None) -> AppConfig:
@@ -32,10 +35,22 @@ def load_config(path: Path | None = None) -> AppConfig:
         raise ValueError(
             "config.json: video_max_duration_seconds must be >= video_min_duration_seconds"
         )
+    sim = float(raw["tts_similarity_boost"])
+    stab = float(raw["tts_stability"])
+    spd = float(raw["tts_speed"])
+    if not 0.0 <= sim <= 1.0:
+        raise ValueError("config.json: tts_similarity_boost must be between 0 and 1")
+    if not 0.0 <= stab <= 1.0:
+        raise ValueError("config.json: tts_stability must be between 0 and 1")
+    if spd <= 0.0:
+        raise ValueError("config.json: tts_speed must be positive")
     return AppConfig(
         voice_id=voice_id,
         video_min_duration_seconds=vmin,
         video_max_duration_seconds=vmax,
+        tts_similarity_boost=sim,
+        tts_stability=stab,
+        tts_speed=spd,
     )
 
 
