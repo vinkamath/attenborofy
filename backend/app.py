@@ -87,7 +87,7 @@ def job_video(job_id):
     if not result_path or not os.path.exists(result_path):
         return jsonify({"error": "Video file not found"}), 404
 
-    return send_file(result_path, mimetype="video/mp4", as_attachment=False, conditional=True)
+    return send_file(result_path, mimetype="video/mp4", as_attachment=False)
 
 
 @app.route("/api/job/<job_id>/narration")
