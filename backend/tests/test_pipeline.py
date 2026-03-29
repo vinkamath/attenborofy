@@ -19,11 +19,11 @@ import pipeline as p
 
 _TTS_SAMPLES_DIR = Path(__file__).resolve().parent / "tts_samples"
 
-# Short line for TTS; voice IDs match pipeline defaults / docs (ElevenLabs).
+# Short line for TTS; voice IDs are ElevenLabs voice IDs (set VOICE_ID in .env for default path).
 _TTS_SAMPLE = "The forest breathes at dawn."
 _VOICE_IDS_FOR_INTEGRATION = (
-    #"JBFqnCBsd6RMkjVDRZzb",  # free-tier test voice when TEST_VOICE=true
-    "WdZjiN0nNcik2LBjOHiv",  # default narration voice
+    #"JBFqnCBsd6RMkjVDRZzb",  # free-tier test voice
+    "WdZjiN0nNcik2LBjOHiv",  # example narration voice
     #"jvcMcno3QtjOzGtfpjoI", # premium
 )
 
@@ -70,7 +70,7 @@ def test_text_to_speech_converts_via_elevenlabs_api():
         if e.status_code == 402:
             pytest.fail(
                 f"ElevenLabs 402 Payment Required: voice '{p.VOICE_ID}' needs a paid plan. "
-                f"Set TEST_VOICE=true or use a free voice. Detail: {p._elevenlabs_error_message(e)}"
+                f"Set VOICE_ID in .env to a voice your plan allows. Detail: {p._elevenlabs_error_message(e)}"
             )
         raise
 
