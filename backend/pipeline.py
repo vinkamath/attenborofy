@@ -30,7 +30,7 @@ AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
-VOICE_ID = CONFIG.voice_id
+VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID") or CONFIG.voice_id
 
 
 def validate_video(path: str) -> tuple[bool, float, str]:

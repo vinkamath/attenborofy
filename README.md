@@ -1,47 +1,67 @@
 # Attenborofy
 
-A web application that converts text to speech in the style of Sir David Attenborough's voice using ElevenLabs API.
+A web application that adds video narration in the style of Sir David Attenborough.
 
-## Features
+## Quickstart
 
-- Simple web interface for text input
-- Text-to-speech conversion using David Attenborough's voice
-- Example phrases for inspiration
-- Responsive design
+### Prerequisites
 
-## Setup
+- [Node.js](https://nodejs.org/) 20+
+- [Python](https://www.python.org/) 3.12+
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- [ffmpeg](https://ffmpeg.org/) (video processing)
+- An [ElevenLabs](https://elevenlabs.io/) API key
+- An OpenAI-compatible API key 
 
-1. Clone this repository
-2. Install dependencies:
+### Setup
+
 ```bash
-pip install -r requirements.txt
+# Clone and enter the repo
+git clone <repo-url> && cd attenborofy
+
+# Copy the example env file and fill in your API keys
+cp .env.example .env
+
+# Install backend dependencies
+cd backend && uv sync && cd ..
+
+# Install frontend dependencies and build
+cd frontend && npm install && npm run build && cd ..
 ```
 
-3. Set up environment variables:
-   - Copy `.env.example` to `.env`
-   - Get an API key from [ElevenLabs](https://elevenlabs.io/)
-   - Update the `.env` file with your API key
+### Run
 
-4. Run the application:
 ```bash
-python app.py
+cd backend && uv run python app.py
 ```
 
-5. Open your browser and navigate to `http://127.0.0.1:5000`
+Open [http://localhost:5001](http://localhost:5001) in your browser.
 
-## Usage
+## How It Works
 
-1. Enter text in the provided text area or select one of the example phrases
-2. Click "Generate Audio" to convert the text to speech
-3. The audio will play automatically once generated
-4. You can replay the audio using the audio controls
+1. **Upload** — you upload a short video (10–30 seconds)
+2. **Extract frames** — the backend pulls evenly-spaced frames from the video
+3. **Generate narration** — frames are sent to a GPT vision model which writes a David Attenborough-style narration
+4. **Text-to-speech** — the narration is converted to audio via ElevenLabs
+5. **Compose** — the original audio is mixed with the narration and subtitles are burned in, producing the final video
 
-## Notes
+## Voice Configuration
 
-- This application uses the ElevenLabs API for text-to-speech conversion
-- An API key is required for the ElevenLabs service
-- The application is for demonstration purposes only
+The app ships with a paid ElevenLabs voice clone in `backend/config.json` that closely resembles Sir David Attenborough. **FREE users won't have access to this voice.**
 
-## License
+The `.env.example` file includes `ELEVENLABS_VOICE_ID` set to "George" (`JBFqnCBsd6RMkjVDRZzb`), a free built-in British male voice — the closest free alternative. When this env var is set, it overrides the voice in `config.json`.
 
-This project is provided as-is without any warranty.
+To use a different voice, replace the `ELEVENLABS_VOICE_ID` value in your `.env` with any ElevenLabs voice ID.
+
+## Project Structure
+
+```
+backend/
+  app.py            # Flask API server
+  pipeline.py       # Video processing pipeline (frames → narration → TTS → compose)
+  app_config.py     # Loads config.json
+  config.json       # Voice ID, TTS tuning, video duration limits
+  jobs.py           # Background job management
+frontend/
+  src/              # React + TypeScript (Vite)
+```
