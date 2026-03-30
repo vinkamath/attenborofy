@@ -11,9 +11,6 @@ export default function Layout() {
             <span className="text-2xl font-bold tracking-tight text-foreground">
               Attenborofy
             </span>
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              Narrate any video in Sir David's voice
-            </span>
           </Link>
           <nav className="flex gap-4">
             <Link

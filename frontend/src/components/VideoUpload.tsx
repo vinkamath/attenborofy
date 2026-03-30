@@ -4,9 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -133,12 +130,6 @@ export default function VideoUpload() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Upload Video</CardTitle>
-          <CardDescription>
-            Drag and drop or click to select a video file
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Drop Zone */}
