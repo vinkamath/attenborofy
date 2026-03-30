@@ -1,22 +1,4 @@
 services:
   - type: web
     name: attenborofy
-    runtime: python
-    buildCommand: |
-      apt-get update && apt-get install -y ffmpeg &&
-      cd frontend && npm install && npm run build && cd .. &&
-      pip install uv && cd backend && uv sync
-    startCommand: cd backend && uv run gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300
-    envVars:
-      - key: ELEVENLABS_API_KEY
-        sync: false
-      - key: AZURE_OPENAI_API_KEY
-        sync: false
-      - key: AZURE_OPENAI_ENDPOINT
-        value: "https://riffle-eastus2-resource.openai.azure.com/openai/v1/"
-      - key: AZURE_OPENAI_DEPLOYMENT
-        value: "gpt-5.3-chat"
-      - key: PYTHON_VERSION
-        value: "3.12"
-      - key: NODE_VERSION
-        value: "20"
+    runtime: docker
