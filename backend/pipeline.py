@@ -182,7 +182,10 @@ def analyze_and_narrate(
                 "unexpected insights about behavior, and a sense of reverence for the subject. "
                 "If the video features animals or nature, lean into classic wildlife documentary style. "
                 "If it features humans, treat them with the same gentle anthropological curiosity "
-                "Attenborough would bring to observing any fascinating species."
+                "Attenborough would bring to observing any fascinating species. "
+                "Use dry, tongue-in-cheek British humour throughout: playful understatement, polite irony, "
+                "and the occasional cheeky observation. Keep it family-friendly and affectionate rather than mean. "
+                "Avoid sarcasm that undermines the subject; the humour should feel clever, warm, and lightly quirky."
             ),
         },
         {
