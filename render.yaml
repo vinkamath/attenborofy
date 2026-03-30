@@ -5,8 +5,8 @@ services:
     buildCommand: |
       apt-get update && apt-get install -y ffmpeg &&
       cd frontend && npm install && npm run build && cd .. &&
-      cd backend && pip install -r requirements.txt
-    startCommand: cd backend && gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300
+      pip install uv && cd backend && uv sync
+    startCommand: cd backend && uv run gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300
     envVars:
       - key: ELEVENLABS_API_KEY
         sync: false

@@ -18,7 +18,7 @@ try:
 except ImportError:
     load_dotenv = None
 
-# Same idea as app.py: load repo .env before reading env-based config (voice, keys).
+# Same idea as app.py: load repo .env before reading API keys (voice comes from config.json).
 if load_dotenv is not None:
     load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -29,7 +29,7 @@ AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
-VOICE_ID = os.getenv("VOICE_ID") or ""
+VOICE_ID = CONFIG.voice_id
 
 
 def validate_video(path: str) -> tuple[bool, float, str]:
@@ -208,7 +208,7 @@ def _elevenlabs_error_message(exc: ApiError) -> str:
 def text_to_speech(text: str, voice_id: str | None = None) -> str:
     """Convert text to speech using ElevenLabs. Returns path to MP3 file.
 
-    If voice_id is omitted, uses VOICE_ID from the environment.
+    If voice_id is omitted, uses voice_id from config.json (CONFIG.voice_id).
     """
     api_key = (os.getenv("ELEVENLABS_API_KEY") or ELEVENLABS_API_KEY or "").strip()
     if not api_key:
@@ -218,8 +218,8 @@ def text_to_speech(text: str, voice_id: str | None = None) -> str:
     vid = vid.strip()
     if not vid:
         raise ValueError(
-            "VOICE_ID must be set in the environment when voice_id is not passed, "
-            "or pass a non-empty voice_id."
+            "voice_id must be non-empty when passed explicitly; "
+            "otherwise set voice_id in config.json."
         )
 
     client = ElevenLabs(api_key=api_key)
