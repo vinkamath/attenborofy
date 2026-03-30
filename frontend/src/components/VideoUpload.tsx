@@ -210,8 +210,8 @@ export default function VideoUpload() {
                 rows={3}
               />
               <p className="text-xs text-muted-foreground">
-                Help the narrator understand what's happening. Names, locations,
-                backstory — anything that adds flavor.
+                 Add names, locations or a
+                backstory — anything that adds flavor to the narration.
               </p>
             </div>
 

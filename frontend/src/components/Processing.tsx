@@ -13,12 +13,12 @@ const QUOTES = [
 ];
 
 const STEPS = [
-  { key: "Validating", label: "Validating video" },
-  { key: "Analyzing", label: "Analyzing video frames" },
-  { key: "Writing", label: "Writing narration script" },
-  { key: "Generating", label: "Generating voiceover" },
-  { key: "Creating", label: "Creating subtitles" },
-  { key: "Composing", label: "Composing final video" },
+  { key: "Validating", label: "Checking if Sir David would approve" },
+  { key: "Analyzing", label: "Studying the footage intently" },
+  { key: "Writing", label: "Calling Sir David Attenborough" },
+  { key: "Generating", label: "Recording the telephone conversation" },
+  { key: "Creating", label: "Deciphering what he said through the static" },
+  { key: "Composing", label: "Posting the final tape via Royal Mail" },
 ];
 
 function getStepIndex(progress: string): number {
