@@ -5,6 +5,7 @@ import math
 import os
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 from elevenlabs import ElevenLabs, VoiceSettings
@@ -36,6 +37,12 @@ def validate_video(path: str) -> tuple[bool, float, str]:
     """Validate video file and return (ok, duration_seconds, error_message)."""
     try:
         cfg = load_config()
+        logger.info(
+            "Validating video file: path=%s min=%ss max=%ss",
+            path,
+            cfg.video_min_duration_seconds,
+            cfg.video_max_duration_seconds,
+        )
         result = subprocess.run(
             [
                 "ffprobe",
@@ -81,6 +88,7 @@ def validate_video(path: str) -> tuple[bool, float, str]:
 def extract_frames(video_path: str, num_frames: int = 10) -> list[str]:
     """Extract evenly-spaced frames from video, return as base64-encoded JPEGs."""
     tmp_dir = tempfile.mkdtemp(prefix="attenborofy_frames_")
+    logger.info("Extracting frames: path=%s target_frames=%s", video_path, num_frames)
 
     # Get duration first
     result = subprocess.run(
@@ -123,6 +131,12 @@ def analyze_and_narrate(
     frames: list[str], duration: float, user_context: str
 ) -> str:
     """Use Azure OpenAI vision to analyze frames and generate Attenborough narration."""
+    logger.info(
+        "Starting narration generation: frames=%s duration=%.2fs context_chars=%s",
+        len(frames),
+        duration,
+        len(user_context),
+    )
     api_key = (AZURE_OPENAI_API_KEY or "").strip()
     base_url = (AZURE_OPENAI_ENDPOINT or "").strip()
     deployment = (AZURE_OPENAI_DEPLOYMENT or "").strip()
@@ -234,6 +248,7 @@ def text_to_speech(text: str, voice_id: str | None = None) -> str:
         )
 
     client = ElevenLabs(api_key=api_key)
+    logger.info("Starting TTS generation: voice_id=%s text_words=%s", vid, len(text.split()))
     response = client.text_to_speech.convert(
         voice_id=vid,
         output_format="mp3_44100_128",
@@ -327,6 +342,13 @@ def compose_video(
     video_path: str, audio_path: str, srt_path: str, output_path: str
 ) -> str:
     """Overlay narration audio and burn subtitles onto original video."""
+    logger.info(
+        "Starting composition: video=%s audio=%s srt=%s output=%s",
+        video_path,
+        audio_path,
+        srt_path,
+        output_path,
+    )
     # Get audio duration to know if we need to pad
     audio_dur = get_audio_duration(audio_path)
 
@@ -399,41 +421,89 @@ def compose_video(
 def process_video(job_id: str, video_path: str, user_context: str, job_store) -> None:
     """Full processing pipeline. Updates job_store at each step."""
     try:
+        total_start = time.perf_counter()
+        logger.info("Job %s started: video_path=%s", job_id, video_path)
         output_path = os.path.join(
             tempfile.gettempdir(), f"attenborofy_output_{job_id}.mp4"
         )
 
         # Step 1: Validate
+        step_start = time.perf_counter()
         job_store.update(job_id, status="processing", progress="Validating video...")
         ok, duration, error = validate_video(video_path)
+        logger.info(
+            "Job %s validate step finished: ok=%s duration=%.2fs elapsed=%.3fs",
+            job_id,
+            ok,
+            duration,
+            time.perf_counter() - step_start,
+        )
         if not ok:
             job_store.update(job_id, status="error", error=error)
+            logger.info("Job %s failed validation: %s", job_id, error)
             return
 
         # Step 2: Extract frames
+        step_start = time.perf_counter()
         job_store.update(job_id, progress="Analyzing video frames...")
         frames = extract_frames(video_path, num_frames=min(10, max(4, int(duration))))
+        logger.info(
+            "Job %s frame extraction finished: frames=%s elapsed=%.3fs",
+            job_id,
+            len(frames),
+            time.perf_counter() - step_start,
+        )
 
         if not frames:
             job_store.update(job_id, status="error", error="Could not extract frames from video.")
+            logger.info("Job %s failed: no frames extracted", job_id)
             return
 
         # Step 3: Generate narration
+        step_start = time.perf_counter()
         job_store.update(job_id, progress="Writing narration script...")
         narration = analyze_and_narrate(frames, duration, user_context)
+        logger.info(
+            "Job %s narration step finished: words=%s elapsed=%.3fs",
+            job_id,
+            len(narration.split()),
+            time.perf_counter() - step_start,
+        )
 
         # Step 4: Text to speech
+        step_start = time.perf_counter()
         job_store.update(job_id, progress="Generating voiceover...")
         audio_path = text_to_speech(narration)
         audio_duration = get_audio_duration(audio_path)
+        logger.info(
+            "Job %s TTS step finished: audio_path=%s audio_duration=%.2fs elapsed=%.3fs",
+            job_id,
+            audio_path,
+            audio_duration,
+            time.perf_counter() - step_start,
+        )
 
         # Step 5: Generate subtitles
+        step_start = time.perf_counter()
         job_store.update(job_id, progress="Creating subtitles...")
         srt_path = generate_srt(narration, audio_duration)
+        logger.info(
+            "Job %s subtitle step finished: srt_path=%s elapsed=%.3fs",
+            job_id,
+            srt_path,
+            time.perf_counter() - step_start,
+        )
 
         # Step 6: Compose final video
+        step_start = time.perf_counter()
         job_store.update(job_id, progress="Composing final video...")
         compose_video(video_path, audio_path, srt_path, output_path)
+        logger.info(
+            "Job %s compose step finished: output_path=%s elapsed=%.3fs",
+            job_id,
+            output_path,
+            time.perf_counter() - step_start,
+        )
 
         # Done
         job_store.update(
@@ -443,7 +513,11 @@ def process_video(job_id: str, video_path: str, user_context: str, job_store) ->
             result_path=output_path,
             narration=narration,
         )
-        logger.info(f"Job {job_id} completed successfully")
+        logger.info(
+            "Job %s completed successfully in %.3fs",
+            job_id,
+            time.perf_counter() - total_start,
+        )
 
     except Exception as e:
         logger.error(f"Job {job_id} failed: {e}", exc_info=True)

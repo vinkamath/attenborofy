@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -48,6 +49,11 @@ def allowed_file(filename: str) -> bool:
 def public_config():
     """Non-secret limits for the web client (voice_id stays server-side only)."""
     cfg = load_config()
+    logger.info(
+        "Serving public config (min=%ss, max=%ss)",
+        cfg.video_min_duration_seconds,
+        cfg.video_max_duration_seconds,
+    )
     return jsonify(
         {
             "video_min_duration_seconds": cfg.video_min_duration_seconds,
@@ -58,14 +64,18 @@ def public_config():
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
+    request_start = time.perf_counter()
     if "video" not in request.files:
+        logger.info("Upload rejected: missing 'video' file in request")
         return jsonify({"error": "No video file provided"}), 400
 
     file = request.files["video"]
     if file.filename == "" or not allowed_file(file.filename):
+        logger.info("Upload rejected: invalid file '%s'", file.filename or "<empty>")
         return jsonify({"error": "Invalid file. Please upload mp4, mov, webm, avi, or mkv."}), 400
 
     if job_store.active_count() >= 2:
+        logger.info("Upload rejected: server busy (>=2 active jobs)")
         return jsonify({"error": "Server is busy processing other videos. Please try again shortly."}), 503
 
     user_context = request.form.get("context", "")
@@ -75,10 +85,25 @@ def upload():
     video_id = str(uuid.uuid4())
     video_path = os.path.join(tempfile.gettempdir(), f"attenborofy_upload_{video_id}.{ext}")
     file.save(video_path)
+    size_mb = os.path.getsize(video_path) / (1024 * 1024)
 
     # Create and start job
     job_id = job_store.create()
+    logger.info(
+        "Upload accepted: job_id=%s file='%s' ext=%s size=%.2fMB context_chars=%s",
+        job_id,
+        secure_filename(file.filename),
+        ext,
+        size_mb,
+        len(user_context),
+    )
     start_job(job_store, job_id, video_path, user_context)
+    logger.info("Background job started: job_id=%s", job_id)
+    logger.info(
+        "Upload request complete: job_id=%s elapsed=%.3fs",
+        job_id,
+        time.perf_counter() - request_start,
+    )
 
     return jsonify({"job_id": job_id}), 202
 
@@ -87,8 +112,15 @@ def upload():
 def job_status(job_id):
     job = job_store.get(job_id)
     if not job:
+        logger.info("Job status requested for unknown job_id=%s", job_id)
         return jsonify({"error": "Job not found"}), 404
 
+    logger.info(
+        "Job status requested: job_id=%s status=%s progress='%s'",
+        job_id,
+        job["status"],
+        job["progress"],
+    )
     return jsonify({
         "status": job["status"],
         "progress": job["progress"],
@@ -100,12 +132,15 @@ def job_status(job_id):
 def job_video(job_id):
     job = job_store.get(job_id)
     if not job or job["status"] != "complete":
+        logger.info("Video requested before completion: job_id=%s", job_id)
         return jsonify({"error": "Video not ready"}), 404
 
     result_path = job.get("result_path")
     if not result_path or not os.path.exists(result_path):
+        logger.info("Video requested but file missing: job_id=%s path=%s", job_id, result_path)
         return jsonify({"error": "Video file not found"}), 404
 
+    logger.info("Serving result video: job_id=%s path=%s", job_id, result_path)
     return send_file(result_path, mimetype="video/mp4", as_attachment=False)
 
 
@@ -113,8 +148,10 @@ def job_video(job_id):
 def job_narration(job_id):
     job = job_store.get(job_id)
     if not job or job["status"] != "complete":
+        logger.info("Narration requested before completion: job_id=%s", job_id)
         return jsonify({"error": "Narration not ready"}), 404
 
+    logger.info("Serving narration text: job_id=%s", job_id)
     return jsonify({"narration": job.get("narration", "")})
 
 
@@ -122,9 +159,11 @@ def job_narration(job_id):
 def gallery():
     gallery_json = os.path.join(GALLERY_DIR, "gallery.json")
     if not os.path.exists(gallery_json):
+        logger.info("Gallery requested: no gallery.json found")
         return jsonify([])
 
     with open(gallery_json) as f:
+        logger.info("Gallery requested: serving %s", gallery_json)
         return jsonify(json.load(f))
 
 
