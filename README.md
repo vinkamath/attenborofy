@@ -11,7 +11,7 @@ A web application that adds video narration in the style of Sir David Attenborou
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - [ffmpeg](https://ffmpeg.org/) (video processing)
 - An [ElevenLabs](https://elevenlabs.io/) API key
-- An OpenAI-compatible API key 
+- An [OpenAI](https://platform.openai.com/) API key (or Azure OpenAI endpoint)
 
 ### Setup
 

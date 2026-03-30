@@ -16,9 +16,8 @@ def test_env_keys_from_example_matches_checked_in_file():
     keys = env_keys_from_example(_EXAMPLE)
     assert keys == [
         "ELEVENLABS_API_KEY",
-        "AZURE_OPENAI_API_KEY",
-        "AZURE_OPENAI_ENDPOINT",
-        "AZURE_OPENAI_DEPLOYMENT",
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
     ]
 
 
@@ -45,3 +44,52 @@ def test_validate_required_env_treats_blank_as_missing(monkeypatch: pytest.Monke
     monkeypatch.setenv("FOO", "   ")
     with pytest.raises(SystemExit):
         validate_required_env(ex)
+
+
+# --- Provider group tests (OpenAI vs Azure) ---
+
+_PROVIDER_KEYS = [
+    "OPENAI_API_KEY",
+    "OPENAI_MODEL",
+    "AZURE_OPENAI_API_KEY",
+    "AZURE_OPENAI_ENDPOINT",
+    "AZURE_OPENAI_DEPLOYMENT",
+]
+
+
+def _clear_provider_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key in _PROVIDER_KEYS:
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_validate_ok_with_openai_keys(monkeypatch: pytest.MonkeyPatch):
+    _clear_provider_keys(monkeypatch)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-4o")
+    validate_required_env(_EXAMPLE)
+
+
+def test_validate_ok_with_azure_keys(monkeypatch: pytest.MonkeyPatch):
+    _clear_provider_keys(monkeypatch)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "key")
+    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://example.com")
+    monkeypatch.setenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    validate_required_env(_EXAMPLE)
+
+
+def test_validate_fails_with_no_provider(monkeypatch: pytest.MonkeyPatch):
+    _clear_provider_keys(monkeypatch)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test")
+    with pytest.raises(SystemExit):
+        validate_required_env(_EXAMPLE)
+
+
+def test_validate_fails_with_partial_azure(monkeypatch: pytest.MonkeyPatch):
+    _clear_provider_keys(monkeypatch)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "key")
+    # missing ENDPOINT and DEPLOYMENT
+    with pytest.raises(SystemExit):
+        validate_required_env(_EXAMPLE)

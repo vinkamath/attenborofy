@@ -26,6 +26,10 @@ if load_dotenv is not None:
 logger = logging.getLogger(__name__)
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+
+# OpenAI-compatible config: plain OpenAI vars take precedence over Azure vars.
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL")
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
@@ -130,24 +134,32 @@ def extract_frames(video_path: str, num_frames: int = 10) -> list[str]:
 def analyze_and_narrate(
     frames: list[str], duration: float, user_context: str
 ) -> str:
-    """Use Azure OpenAI vision to analyze frames and generate Attenborough narration."""
+    """Use an OpenAI-compatible vision model to analyze frames and generate Attenborough narration."""
     logger.info(
         "Starting narration generation: frames=%s duration=%.2fs context_chars=%s",
         len(frames),
         duration,
         len(user_context),
     )
-    api_key = (AZURE_OPENAI_API_KEY or "").strip()
-    base_url = (AZURE_OPENAI_ENDPOINT or "").strip()
-    deployment = (AZURE_OPENAI_DEPLOYMENT or "").strip()
-    if not api_key:
-        raise ValueError("AZURE_OPENAI_API_KEY must be set in the environment.")
-    if not base_url:
-        raise ValueError("AZURE_OPENAI_ENDPOINT must be set in the environment.")
-    if not deployment:
-        raise ValueError("AZURE_OPENAI_DEPLOYMENT must be set in the environment.")
 
-    client = OpenAI(api_key=api_key, base_url=base_url)
+    # Plain OpenAI takes precedence; fall back to Azure OpenAI vars.
+    if (OPENAI_API_KEY or "").strip():
+        client = OpenAI(api_key=OPENAI_API_KEY.strip())
+        model = (OPENAI_MODEL).strip()
+    else:
+        api_key = (AZURE_OPENAI_API_KEY or "").strip()
+        base_url = (AZURE_OPENAI_ENDPOINT or "").strip()
+        deployment = (AZURE_OPENAI_DEPLOYMENT or "").strip()
+        if not api_key:
+            raise ValueError(
+                "Set OPENAI_API_KEY (for OpenAI) or AZURE_OPENAI_API_KEY (for Azure)."
+            )
+        if not base_url:
+            raise ValueError("AZURE_OPENAI_ENDPOINT must be set in the environment.")
+        if not deployment:
+            raise ValueError("AZURE_OPENAI_DEPLOYMENT must be set in the environment.")
+        client = OpenAI(api_key=api_key, base_url=base_url)
+        model = deployment
 
     # Target ~1.8 words per second for unhurried Attenborough pacing
     target_words = int(duration * 1.8)
@@ -210,7 +222,7 @@ def analyze_and_narrate(
     ]
 
     response = client.chat.completions.create(
-        model=deployment,
+        model=model,
         messages=messages,
         max_completion_tokens=1000,
     )
