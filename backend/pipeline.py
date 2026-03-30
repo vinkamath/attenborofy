@@ -11,7 +11,7 @@ from elevenlabs import ElevenLabs, VoiceSettings
 from elevenlabs.core.api_error import ApiError
 from openai import OpenAI
 
-from app_config import CONFIG
+from app_config import CONFIG, load_config
 
 try:
     from dotenv import load_dotenv
@@ -35,6 +35,7 @@ VOICE_ID = CONFIG.voice_id
 def validate_video(path: str) -> tuple[bool, float, str]:
     """Validate video file and return (ok, duration_seconds, error_message)."""
     try:
+        cfg = load_config()
         result = subprocess.run(
             [
                 "ffprobe",
@@ -54,8 +55,18 @@ def validate_video(path: str) -> tuple[bool, float, str]:
         info = json.loads(result.stdout)
         duration = float(info["format"]["duration"])
 
-        if duration > 60:
-            return False, duration, f"Video is {duration:.0f}s long. Maximum is 60 seconds."
+        if duration < cfg.video_min_duration_seconds:
+            return (
+                False,
+                duration,
+                f"Video is {duration:.0f}s long. Minimum is {cfg.video_min_duration_seconds:g} seconds.",
+            )
+        if duration > cfg.video_max_duration_seconds:
+            return (
+                False,
+                duration,
+                f"Video is {duration:.0f}s long. Maximum is {cfg.video_max_duration_seconds:g} seconds.",
+            )
 
         has_video = any(s["codec_type"] == "video" for s in info.get("streams", []))
         if not has_video:

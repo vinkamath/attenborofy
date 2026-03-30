@@ -15,9 +15,8 @@ import { getPublicAppConfig, uploadVideo } from "@/lib/api";
 const DEFAULT_LIMITS = { min: 0, max: 60 };
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/x-matroska"];
 
-function durationRangeLabel(min: number, max: number): string {
-  if (min <= 0) return `Max ${max} seconds`;
-  return `${min}–${max} seconds`;
+function durationLimitsLabel(min: number, max: number): string {
+  return `Duration: ${min}–${max} seconds`;
 }
 
 export default function VideoUpload() {
@@ -129,8 +128,7 @@ export default function VideoUpload() {
           Narrate Your Video
         </h1>
         <p className="text-muted-foreground text-lg">
-          Upload a video ({durationRangeLabel(durationLimits.min, durationLimits.max)}) and get it narrated in the style of Sir
-          David Attenborough.
+          Upload a video and get it narrated in the style of Sir David Attenborough.
         </p>
       </div>
 
@@ -165,7 +163,7 @@ export default function VideoUpload() {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   MP4, MOV, WebM, AVI, MKV &middot;{" "}
-                  {durationRangeLabel(durationLimits.min, durationLimits.max)}
+                  {durationLimitsLabel(durationLimits.min, durationLimits.max)}
                 </p>
                 <input
                   ref={fileInputRef}
