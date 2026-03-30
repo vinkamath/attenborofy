@@ -54,3 +54,7 @@ Thumbs.db
 
 # Tooling
 .eslintcache
+
+# Local CLI auth/config caches
+.azure-config/
+.gh-config/
