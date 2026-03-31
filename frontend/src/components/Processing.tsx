@@ -98,7 +98,6 @@ export default function Processing() {
                 <h2 className="text-xl font-semibold mb-1">
                   Narrating your video...
                 </h2>
-                <p className="text-muted-foreground text-sm">{progress}</p>
               </div>
 
               {/* Step indicator */}

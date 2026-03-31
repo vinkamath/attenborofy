@@ -7,6 +7,9 @@ export interface JobStatus {
   status: "pending" | "processing" | "complete" | "error";
   progress: string;
   error: string | null;
+  expires_at?: number;
+  seconds_until_cleanup?: number;
+  artifacts_available?: boolean;
 }
 
 export interface GalleryItem {
@@ -64,6 +67,19 @@ export async function getJobStatus(jobId: string): Promise<JobStatus> {
   const res = await fetch(`/api/job/${jobId}/status`);
   if (!res.ok) throw new Error("Failed to get job status");
   return res.json();
+}
+
+export async function redoNarration(jobId: string, context: string): Promise<UploadResponse> {
+  const res = await fetch(`/api/job/${jobId}/redo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ context }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to redo narration");
+  }
+  return data;
 }
 
 export async function getNarration(jobId: string): Promise<string> {

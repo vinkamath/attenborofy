@@ -17,6 +17,7 @@ class AppConfig:
     tts_similarity_boost: float
     tts_stability: float
     tts_speed: float
+    job_ttl_seconds: int
 
 
 def load_config(path: Path | None = None) -> AppConfig:
@@ -44,6 +45,9 @@ def load_config(path: Path | None = None) -> AppConfig:
         raise ValueError("config.json: tts_stability must be between 0 and 1")
     if spd <= 0.0:
         raise ValueError("config.json: tts_speed must be positive")
+    ttl = int(raw.get("job_ttl_seconds", 3600))
+    if ttl <= 0:
+        raise ValueError("config.json: job_ttl_seconds must be positive")
     return AppConfig(
         voice_id=voice_id,
         video_min_duration_seconds=vmin,
@@ -51,6 +55,7 @@ def load_config(path: Path | None = None) -> AppConfig:
         tts_similarity_boost=sim,
         tts_stability=stab,
         tts_speed=spd,
+        job_ttl_seconds=ttl,
     )
 
 

@@ -4,5 +4,6 @@
   "video_max_duration_seconds": 30,
   "tts_similarity_boost": 0.75,
   "tts_stability": 0.75,
-  "tts_speed": 1.0
+  "tts_speed": 1.0,
+  "job_ttl_seconds": 60
 }

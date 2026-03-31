@@ -1,12 +1,15 @@
 import logging
+import os
 import threading
 import time
 import uuid
 
+from app_config import CONFIG
+
 logger = logging.getLogger(__name__)
 
 MAX_CONCURRENT_JOBS = 2
-JOB_TTL_SECONDS = 3600  # 1 hour
+JOB_TTL_SECONDS = CONFIG.job_ttl_seconds
 
 
 class JobStore:
@@ -23,6 +26,11 @@ class JobStore:
                 "error": None,
                 "result_path": None,
                 "narration": None,
+                "source_video_path": None,
+                "video_duration": None,
+                "frames": None,
+                "source_job_id": None,
+                "context": "",
                 "created_at": time.time(),
             }
         return job_id
@@ -45,6 +53,7 @@ class JobStore:
     def cleanup_old(self) -> None:
         """Remove jobs older than JOB_TTL_SECONDS."""
         now = time.time()
+        expired_jobs: list[dict] = []
         with self._lock:
             expired = [
                 jid
@@ -52,17 +61,40 @@ class JobStore:
                 if now - j["created_at"] > JOB_TTL_SECONDS
             ]
             for jid in expired:
+                expired_jobs.append(self._jobs[jid].copy())
                 del self._jobs[jid]
+
+        for job in expired_jobs:
+            for path_key in ("result_path",):
+                path = job.get(path_key)
+                if isinstance(path, str) and path and os.path.exists(path):
+                    try:
+                        os.remove(path)
+                    except OSError:
+                        logger.warning("Failed to remove expired artifact: %s", path)
+
         if expired:
             logger.info(f"Cleaned up {len(expired)} expired jobs")
 
 
-def start_job(job_store: JobStore, job_id: str, video_path: str, user_context: str) -> None:
+def start_job(
+    job_store: JobStore,
+    job_id: str,
+    video_path: str,
+    user_context: str,
+    reuse_artifacts: dict | None = None,
+) -> None:
     """Start a processing job in a background thread."""
     from pipeline import process_video
 
     def _run():
-        process_video(job_id, video_path, user_context, job_store)
+        process_video(
+            job_id,
+            video_path,
+            user_context,
+            job_store,
+            reuse_artifacts=reuse_artifacts,
+        )
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()

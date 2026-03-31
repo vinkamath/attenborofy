@@ -19,7 +19,7 @@ from required_env import validate_required_env
 validate_required_env(_REPO_ROOT / ".env.example")
 
 from app_config import CONFIG, load_config
-from jobs import JobStore, start_cleanup_timer, start_job
+from jobs import JOB_TTL_SECONDS, JobStore, start_cleanup_timer, start_job
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -108,6 +108,52 @@ def upload():
     return jsonify({"job_id": job_id}), 202
 
 
+@app.route("/api/job/<job_id>/redo", methods=["POST"])
+def redo_job(job_id):
+    if job_store.active_count() >= 2:
+        logger.info("Redo rejected: server busy (>=2 active jobs)")
+        return jsonify({"error": "Server is busy processing other videos. Please try again shortly."}), 503
+
+    original = job_store.get(job_id)
+    if not original:
+        logger.info("Redo requested for unknown job_id=%s", job_id)
+        return jsonify({"error": "Original job not found. Please upload the video again."}), 404
+
+    source_video_path = original.get("source_video_path")
+    video_duration = original.get("video_duration")
+    frames = original.get("frames")
+    if not source_video_path or not os.path.exists(source_video_path):
+        logger.info("Redo unavailable: source video missing for job_id=%s", job_id)
+        return jsonify({"error": "Redo unavailable because original files expired. Please upload again."}), 410
+    if not isinstance(video_duration, (int, float)) or not frames:
+        logger.info("Redo unavailable: reusable artifacts missing for job_id=%s", job_id)
+        return jsonify({"error": "Redo unavailable because analysis artifacts expired. Please upload again."}), 410
+
+    payload = request.get_json(silent=True) or {}
+    context_from_json = payload.get("context", "")
+    context_from_form = request.form.get("context", "")
+    user_context = (
+        context_from_json if isinstance(context_from_json, str) else context_from_form
+    )
+
+    new_job_id = job_store.create()
+    job_store.update(
+        new_job_id,
+        source_job_id=job_id,
+        source_video_path=source_video_path,
+        context=user_context,
+    )
+    start_job(
+        job_store,
+        new_job_id,
+        source_video_path,
+        user_context,
+        reuse_artifacts={"duration": float(video_duration), "frames": frames},
+    )
+    logger.info("Redo job started: source_job_id=%s new_job_id=%s", job_id, new_job_id)
+    return jsonify({"job_id": new_job_id}), 202
+
+
 @app.route("/api/job/<job_id>/status")
 def job_status(job_id):
     job = job_store.get(job_id)
@@ -121,11 +167,29 @@ def job_status(job_id):
         job["status"],
         job["progress"],
     )
-    return jsonify({
-        "status": job["status"],
-        "progress": job["progress"],
-        "error": job["error"],
-    })
+    created_at = float(job.get("created_at", time.time()))
+    expires_at = created_at + JOB_TTL_SECONDS
+    now = time.time()
+    result_path = job.get("result_path")
+    source_video_path = job.get("source_video_path")
+    artifacts_available = bool(
+        isinstance(result_path, str)
+        and os.path.exists(result_path)
+        and isinstance(source_video_path, str)
+        and os.path.exists(source_video_path)
+        and isinstance(job.get("video_duration"), (int, float))
+        and bool(job.get("frames"))
+    )
+    return jsonify(
+        {
+            "status": job["status"],
+            "progress": job["progress"],
+            "error": job["error"],
+            "expires_at": expires_at,
+            "seconds_until_cleanup": max(0, int(expires_at - now)),
+            "artifacts_available": artifacts_available,
+        }
+    )
 
 
 @app.route("/api/job/<job_id>/video")

@@ -433,7 +433,13 @@ def compose_video(
     return output_path
 
 
-def process_video(job_id: str, video_path: str, user_context: str, job_store) -> None:
+def process_video(
+    job_id: str,
+    video_path: str,
+    user_context: str,
+    job_store,
+    reuse_artifacts: dict | None = None,
+) -> None:
     """Full processing pipeline. Updates job_store at each step."""
     try:
         total_start = time.perf_counter()
@@ -441,38 +447,60 @@ def process_video(job_id: str, video_path: str, user_context: str, job_store) ->
         output_path = os.path.join(
             tempfile.gettempdir(), f"attenborofy_output_{job_id}.mp4"
         )
+        reuse_duration = None
+        reuse_frames = None
+        if reuse_artifacts:
+            duration_candidate = reuse_artifacts.get("duration")
+            frames_candidate = reuse_artifacts.get("frames")
+            if isinstance(duration_candidate, (int, float)) and isinstance(frames_candidate, list):
+                reuse_duration = float(duration_candidate)
+                reuse_frames = frames_candidate
 
-        # Step 1: Validate
-        step_start = time.perf_counter()
-        job_store.update(job_id, status="processing", progress="Validating video...")
-        ok, duration, error = validate_video(video_path)
-        logger.info(
-            "Job %s validate step finished: ok=%s duration=%.2fs elapsed=%.3fs",
-            job_id,
-            ok,
-            duration,
-            time.perf_counter() - step_start,
-        )
-        if not ok:
-            job_store.update(job_id, status="error", error=error)
-            logger.info("Job %s failed validation: %s", job_id, error)
-            return
+        job_store.update(job_id, status="processing", source_video_path=video_path, context=user_context)
+        if reuse_duration is not None and reuse_frames:
+            duration = reuse_duration
+            frames = reuse_frames
+            job_store.update(job_id, progress="Reusing previous video analysis...")
+            logger.info(
+                "Job %s using reusable artifacts: duration=%.2fs frames=%s",
+                job_id,
+                duration,
+                len(frames),
+            )
+        else:
+            # Step 1: Validate
+            step_start = time.perf_counter()
+            job_store.update(job_id, progress="Validating video...")
+            ok, duration, error = validate_video(video_path)
+            logger.info(
+                "Job %s validate step finished: ok=%s duration=%.2fs elapsed=%.3fs",
+                job_id,
+                ok,
+                duration,
+                time.perf_counter() - step_start,
+            )
+            if not ok:
+                job_store.update(job_id, status="error", error=error)
+                logger.info("Job %s failed validation: %s", job_id, error)
+                return
 
-        # Step 2: Extract frames
-        step_start = time.perf_counter()
-        job_store.update(job_id, progress="Analyzing video frames...")
-        frames = extract_frames(video_path, num_frames=min(10, max(4, int(duration))))
-        logger.info(
-            "Job %s frame extraction finished: frames=%s elapsed=%.3fs",
-            job_id,
-            len(frames),
-            time.perf_counter() - step_start,
-        )
+            # Step 2: Extract frames
+            step_start = time.perf_counter()
+            job_store.update(job_id, progress="Analyzing video frames...")
+            frames = extract_frames(video_path, num_frames=min(10, max(4, int(duration))))
+            logger.info(
+                "Job %s frame extraction finished: frames=%s elapsed=%.3fs",
+                job_id,
+                len(frames),
+                time.perf_counter() - step_start,
+            )
 
         if not frames:
             job_store.update(job_id, status="error", error="Could not extract frames from video.")
             logger.info("Job %s failed: no frames extracted", job_id)
             return
+
+        job_store.update(job_id, video_duration=duration, frames=frames)
 
         # Step 3: Generate narration
         step_start = time.perf_counter()
@@ -527,6 +555,10 @@ def process_video(job_id: str, video_path: str, user_context: str, job_store) ->
             progress="Done!",
             result_path=output_path,
             narration=narration,
+            source_video_path=video_path,
+            video_duration=duration,
+            frames=frames,
+            context=user_context,
         )
         logger.info(
             "Job %s completed successfully in %.3fs",
