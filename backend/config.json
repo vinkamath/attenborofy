@@ -1,7 +1,7 @@
 {
   "voice_id": "WdZjiN0nNcik2LBjOHiv",
   "video_min_duration_seconds": 10,
-  "video_max_duration_seconds": 30,
+  "video_max_duration_seconds": 32,
   "tts_similarity_boost": 0.75,
   "tts_stability": 0.75,
   "tts_speed": 1.0,
