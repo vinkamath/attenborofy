@@ -5,5 +5,5 @@
   "tts_similarity_boost": 0.75,
   "tts_stability": 0.75,
   "tts_speed": 1.0,
-  "job_ttl_seconds": 60
+  "job_ttl_seconds": 600 
 }

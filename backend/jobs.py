@@ -102,7 +102,8 @@ def start_job(
 
 def start_cleanup_timer(job_store: JobStore) -> None:
     """Periodically clean up expired jobs."""
-    interval = min(JOB_TTL_SECONDS // 2, 300) or 10
+    # Clean up every 10 minutes if the job TTL is 1 hour, or every 3 minutes if the job TTL is too low.
+    interval = max(min(JOB_TTL_SECONDS, 600), 180)
 
     def _cleanup_loop():
         while True:
