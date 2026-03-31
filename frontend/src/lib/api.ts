@@ -10,10 +10,12 @@ export interface JobStatus {
 }
 
 export interface GalleryItem {
+  id?: string;
   title: string;
   description: string;
-  video: string;
-  thumbnail: string;
+  video_url: string;
+  thumbnail_url: string;
+  created_at?: string;
 }
 
 export interface PublicAppConfig {
@@ -83,6 +85,18 @@ export async function getGallery(): Promise<GalleryItem[]> {
   return res.json();
 }
 
-export function getGalleryFileUrl(filename: string): string {
-  return `/api/gallery/${filename}`;
+export async function addToGallery(
+  jobId: string,
+  title: string
+): Promise<GalleryItem> {
+  const res = await fetch("/api/gallery", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ job_id: jobId, title }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: "Failed to add to gallery" }));
+    throw new Error(data.error || "Failed to add to gallery");
+  }
+  return res.json();
 }

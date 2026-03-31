@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { getPublicAppConfig, uploadVideo } from "@/lib/api";
+import { type GalleryItem, getGallery, getPublicAppConfig, uploadVideo } from "@/lib/api";
 
 const DEFAULT_LIMITS = { min: 0, max: 60 };
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/x-matroska"];
@@ -28,6 +28,7 @@ export default function VideoUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [durationLimits, setDurationLimits] = useState(DEFAULT_LIMITS);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
 
   useEffect(() => {
     getPublicAppConfig()
@@ -40,6 +41,7 @@ export default function VideoUpload() {
       .catch(() => {
         /* dev without API: keep defaults */
       });
+    getGallery().then(setGalleryItems).catch(() => {});
   }, []);
 
   const validateAndSetFile = useCallback(
@@ -119,7 +121,7 @@ export default function VideoUpload() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
+    <div className="max-w-4xl mx-auto px-4 py-12">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold tracking-tight mb-3">
           Narrate Your Video
@@ -129,7 +131,7 @@ export default function VideoUpload() {
         </p>
       </div>
 
-      <Card>
+      <Card className="max-w-2xl mx-auto">
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Drop Zone */}
@@ -244,6 +246,41 @@ export default function VideoUpload() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Gallery Preview */}
+      {galleryItems.length > 0 && (
+        <div className="mt-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold tracking-tight">
+              From the Gallery
+            </h2>
+            <Link
+              to="/gallery"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View all &rarr;
+            </Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {galleryItems.slice(0, 3).map((item, i) => (
+              <Card key={item.id ?? i} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <video
+                    src={item.video_url}
+                    poster={item.thumbnail_url || undefined}
+                    controls
+                    preload="metadata"
+                    className="w-full aspect-video object-cover"
+                  />
+                </CardContent>
+                <div className="px-4 py-3">
+                  <p className="text-sm font-medium truncate">{item.title}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

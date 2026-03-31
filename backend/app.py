@@ -1,6 +1,9 @@
+from datetime import UTC, datetime
 import json
 import logging
 import os
+import shutil
+import subprocess
 import tempfile
 import time
 import uuid
@@ -19,6 +22,7 @@ from required_env import validate_required_env
 validate_required_env(_REPO_ROOT / ".env.example")
 
 from app_config import CONFIG, load_config
+import gallery_store
 from jobs import JobStore, start_cleanup_timer, start_job
 
 logging.basicConfig(level=logging.INFO)
@@ -157,14 +161,83 @@ def job_narration(job_id):
 
 @app.route("/api/gallery")
 def gallery():
-    gallery_json = os.path.join(GALLERY_DIR, "gallery.json")
-    if not os.path.exists(gallery_json):
-        logger.info("Gallery requested: no gallery.json found")
+    if not gallery_store.is_enabled():
+        logger.info("Gallery requested: blob storage not configured")
         return jsonify([])
 
-    with open(gallery_json) as f:
-        logger.info("Gallery requested: serving %s", gallery_json)
-        return jsonify(json.load(f))
+    items = gallery_store.get_gallery_items()
+    logger.info("Gallery requested: %d items", len(items))
+    return jsonify(items)
+
+
+@app.route("/api/gallery", methods=["POST"])
+def add_to_gallery():
+    if not gallery_store.is_enabled():
+        return jsonify({"error": "Gallery is not configured"}), 503
+
+    data = request.get_json() or {}
+    job_id = data.get("job_id", "").strip()
+    title = data.get("title", "").strip()
+
+    if not job_id or not title:
+        return jsonify({"error": "job_id and title are required"}), 400
+    if len(title) > 100:
+        return jsonify({"error": "Title must be 100 characters or less"}), 400
+
+    job = job_store.get(job_id)
+    if not job or job["status"] != "complete":
+        return jsonify({"error": "Job not found or not complete"}), 404
+
+    result_path = job.get("result_path")
+    if not result_path or not os.path.exists(result_path):
+        return jsonify({"error": "Video file no longer available. Download your video before it expires."}), 410
+
+    gallery_id = uuid.uuid4().hex[:12]
+
+    # Upload video to blob storage
+    video_url = gallery_store.upload_file(
+        result_path, f"{gallery_id}.mp4", "video/mp4"
+    )
+
+    # Generate and upload thumbnail (best-effort)
+    thumbnail_url = ""
+    thumb_path = os.path.join(tempfile.gettempdir(), f"attenborofy_thumb_{gallery_id}.jpg")
+    try:
+        subprocess.run(
+            [
+                "ffmpeg", "-i", result_path, "-ss", "00:00:01",
+                "-vframes", "1", "-vf", "scale=480:-1",
+                "-y", thumb_path,
+            ],
+            capture_output=True,
+            timeout=15,
+        )
+        if os.path.exists(thumb_path):
+            thumbnail_url = gallery_store.upload_file(
+                thumb_path, f"{gallery_id}_thumb.jpg", "image/jpeg"
+            )
+    except Exception:
+        logger.warning("Thumbnail generation failed for gallery_id=%s", gallery_id)
+    finally:
+        if os.path.exists(thumb_path):
+            os.remove(thumb_path)
+
+    item = {
+        "id": gallery_id,
+        "title": title,
+        "description": job.get("narration", ""),
+        "video_url": video_url,
+        "thumbnail_url": thumbnail_url,
+        "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+    }
+
+    # Prepend to gallery index (newest first)
+    items = gallery_store.get_gallery_items()
+    items.insert(0, item)
+    gallery_store.save_gallery_items(items)
+
+    logger.info("Added to gallery: id=%s title='%s'", gallery_id, title)
+    return jsonify(item), 201
 
 
 @app.route("/api/gallery/<path:filename>")
