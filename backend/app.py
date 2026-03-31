@@ -172,9 +172,11 @@ def job_status(job_id):
     now = time.time()
     result_path = job.get("result_path")
     source_video_path = job.get("source_video_path")
-    artifacts_available = bool(
-        isinstance(result_path, str)
-        and os.path.exists(result_path)
+    video_available = bool(
+        isinstance(result_path, str) and os.path.exists(result_path)
+    )
+    redo_available = bool(
+        video_available
         and isinstance(source_video_path, str)
         and os.path.exists(source_video_path)
         and isinstance(job.get("video_duration"), (int, float))
@@ -187,7 +189,8 @@ def job_status(job_id):
             "error": job["error"],
             "expires_at": expires_at,
             "seconds_until_cleanup": max(0, int(expires_at - now)),
-            "artifacts_available": artifacts_available,
+            "video_available": video_available,
+            "redo_available": redo_available,
         }
     )
 

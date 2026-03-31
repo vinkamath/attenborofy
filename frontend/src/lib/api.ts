@@ -9,7 +9,8 @@ export interface JobStatus {
   error: string | null;
   expires_at?: number;
   seconds_until_cleanup?: number;
-  artifacts_available?: boolean;
+  video_available?: boolean;
+  redo_available?: boolean;
 }
 
 export interface GalleryItem {

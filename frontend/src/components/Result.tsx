@@ -31,7 +31,8 @@ export default function Result() {
   const [redoLoading, setRedoLoading] = useState(false);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  const [artifactsAvailable, setArtifactsAvailable] = useState(true);
+  const [videoAvailable, setVideoAvailable] = useState(true);
+  const [redoAvailable, setRedoAvailable] = useState(true);
 
   useEffect(() => {
     if (!jobId) return;
@@ -41,8 +42,10 @@ export default function Result() {
   useEffect(() => {
     if (!jobId) return;
     let mounted = true;
-    getJobStatus(jobId)
-      .then((status) => {
+
+    const refreshStatus = async () => {
+      try {
+        const status = await getJobStatus(jobId);
         if (!mounted) return;
         if (typeof status.expires_at === "number") {
           setExpiresAt(status.expires_at);
@@ -52,15 +55,24 @@ export default function Result() {
               : Math.max(0, Math.floor(status.expires_at - Date.now() / 1000))
           );
         }
-        setArtifactsAvailable(status.artifacts_available !== false);
-      })
-      .catch(() => {
+        setVideoAvailable(status.video_available !== false);
+        setRedoAvailable(status.redo_available !== false);
+      } catch {
         if (!mounted) return;
-        setArtifactsAvailable(false);
+        setVideoAvailable(false);
+        setRedoAvailable(false);
         setRemainingSeconds(0);
-      });
+      }
+    };
+
+    void refreshStatus();
+    const pollInterval = setInterval(() => {
+      void refreshStatus();
+    }, 5000);
+
     return () => {
       mounted = false;
+      clearInterval(pollInterval);
     };
   }, [jobId]);
 
@@ -69,9 +81,6 @@ export default function Result() {
     const interval = setInterval(() => {
       const secs = Math.max(0, Math.floor(expiresAt - Date.now() / 1000));
       setRemainingSeconds(secs);
-      if (secs <= 0) {
-        setArtifactsAvailable(false);
-      }
     }, 1000);
     return () => clearInterval(interval);
   }, [expiresAt]);
@@ -79,9 +88,13 @@ export default function Result() {
   if (!jobId) return null;
 
   const videoUrl = getVideoUrl(jobId);
-  const expired = remainingSeconds !== null && (remainingSeconds <= 0 || !artifactsAvailable);
+  const timeExpired = remainingSeconds !== null && remainingSeconds <= 0;
+  const downloadDisabled = timeExpired || !videoAvailable;
+  const redoDisabled = timeExpired || !redoAvailable;
+  const countdownLabel =
+    remainingSeconds !== null && !timeExpired ? ` (${formatRemaining(remainingSeconds)})` : "";
   const handleRedo = async () => {
-    if (expired) return;
+    if (redoDisabled) return;
     try {
       setRedoLoading(true);
       setRedoError(null);
@@ -96,15 +109,6 @@ export default function Result() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">
-          Your Narrated Video
-        </h1>
-        <p className="text-muted-foreground">
-          Sir David has spoken. Download before leaving — videos are temporary.
-        </p>
-      </div>
-
       {/* Video Player */}
       <Card>
         <CardContent className="p-0">
@@ -117,15 +121,6 @@ export default function Result() {
         </CardContent>
       </Card>
 
-      {/* Countdown Timer */}
-      {remainingSeconds !== null && (
-        <p className="text-center text-sm text-muted-foreground">
-          {expired
-            ? "Artifacts expired and were cleaned up."
-            : `Available for ${formatRemaining(remainingSeconds)}`}
-        </p>
-      )}
-
       {/* Actions */}
       <div className="flex gap-3 justify-center">
         <a
@@ -133,11 +128,11 @@ export default function Result() {
           download={`attenborofy_${jobId}.mp4`}
           className={cn(
             buttonVariants({ size: "lg" }),
-            expired && "pointer-events-none opacity-50"
+            downloadDisabled && "pointer-events-none opacity-50"
           )}
-          aria-disabled={expired}
+          aria-disabled={downloadDisabled}
         >
-          Download Video
+          {`Download video${countdownLabel}`}
         </a>
         <Link
           to="/"
@@ -156,15 +151,15 @@ export default function Result() {
             value={redoContext}
             onChange={(e) => setRedoContext(e.target.value)}
             placeholder="Optional direction for the new narration..."
-            disabled={expired || redoLoading}
+            disabled={redoDisabled || redoLoading}
             className={cn(
               "w-full min-h-24 rounded-md border bg-background px-3 py-2 text-sm",
-              expired && "opacity-60"
+              redoDisabled && "opacity-60"
             )}
           />
           {redoError ? (
             <p className="text-sm text-destructive">{redoError}</p>
-          ) : expired ? (
+          ) : redoDisabled ? (
             <p className="text-sm text-muted-foreground">
               Redo is unavailable because this video has been cleaned up.
             </p>
@@ -175,15 +170,19 @@ export default function Result() {
           )}
           <button
             type="button"
-            disabled={redoLoading || expired}
+            disabled={redoLoading || redoDisabled}
             onClick={handleRedo}
             className={cn(
               buttonVariants({ size: "lg" }),
               "w-full sm:w-auto",
-              expired && "pointer-events-none opacity-50"
+              redoDisabled && "pointer-events-none opacity-50"
             )}
           >
-            {expired ? "Redo Unavailable" : redoLoading ? "Starting redo..." : "Redo Narration"}
+            {redoDisabled
+              ? "Redo Unavailable"
+              : redoLoading
+                ? `Starting redo...${countdownLabel}`
+                : `Redo Narration${countdownLabel}`}
           </button>
         </CardContent>
       </Card>
