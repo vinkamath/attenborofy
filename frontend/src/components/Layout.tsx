@@ -3,7 +3,7 @@ import Logo from "@/components/Logo";
 
 export default function Layout() {
   const location = useLocation();
-  const isFullBleed = location.pathname === "/" || location.pathname.startsWith("/result/");
+  const isFullBleed = location.pathname === "/" || location.pathname.startsWith("/result/") || location.pathname.startsWith("/processing/");
 
   if (isFullBleed) {
     return (

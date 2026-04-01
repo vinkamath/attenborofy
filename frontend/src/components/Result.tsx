@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Logo from "@/components/Logo";
-import UploadCard from "@/components/UploadCard";
 import { getJobStatus, getNarration, getVideoUrl, redoNarration } from "@/lib/api";
 
 export default function Result() {
@@ -134,7 +133,6 @@ export default function Result() {
           </Link>
         </div>
 
-        {/* Portrait video full-width */}
         <div className="px-4">
           {isDemo ? (
             <div className="w-full rounded-2xl bg-muted" style={{ aspectRatio: "9/16" }} />
@@ -149,7 +147,6 @@ export default function Result() {
           )}
         </div>
 
-        {/* Narration + action buttons */}
         <div className="px-4 py-6 flex flex-col gap-3">
           <div className="mb-1">
             <p className="font-semibold text-foreground mb-1">Your narrated video</p>
@@ -157,63 +154,46 @@ export default function Result() {
               <p className="text-sm text-muted-foreground leading-relaxed">{displayNarration}</p>
             )}
           </div>
-
-          {/* Primary */}
           {downloadBtn}
-
-          {/* Secondary */}
-          <button
-            disabled
-            className="flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium border border-border bg-background text-muted-foreground pointer-events-none"
-          >
-            Add to gallery
-          </button>
-
-          {/* Redo narration */}
           {redoSection}
         </div>
       </div>
 
       {/* ── Desktop layout ── */}
-      <div className="hidden md:flex h-screen flex-col px-8 py-8 gap-8">
-        <Link to="/" className="no-underline block shrink-0">
-          <Logo />
-        </Link>
-
-        <div className="flex-1 flex gap-8 overflow-hidden min-h-0">
-          {/* Left: Upload another */}
-          <div className="shrink-0 w-[325px]">
-            <UploadCard />
+      <div className="hidden md:flex h-screen flex-row overflow-hidden">
+        {/* Left panel */}
+        <div className="w-[380px] shrink-0 bg-panel flex flex-col px-8 py-8 overflow-y-auto">
+          <div className="mb-8">
+            <Link to="/" className="no-underline block">
+              <Logo />
+            </Link>
           </div>
 
-          {/* Middle: narration + download */}
-          <div className="w-[260px] shrink-0 flex flex-col justify-end gap-4 ml-auto">
+          <div className="flex flex-col gap-4">
             <div>
               <p className="text-sm font-semibold text-foreground mb-2">Your narrated video</p>
               {displayNarration && (
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">
-                  {displayNarration}
-                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{displayNarration}</p>
               )}
             </div>
             {downloadBtn}
             {redoSection}
           </div>
+        </div>
 
-          {/* Right: video */}
-          <div className="flex-1 flex items-center justify-end min-w-0">
-            {isDemo ? (
-              <div className="h-full max-w-full rounded-2xl bg-muted" style={{ aspectRatio: "9/16" }} />
-            ) : (
-              <video
-                src={videoUrl}
-                controls
-                autoPlay
-                className="h-full max-w-full rounded-2xl bg-black object-contain"
-                style={{ aspectRatio: "9/16" }}
-              />
-            )}
-          </div>
+        {/* Right canvas — video in same position as phone mockup */}
+        <div className="flex-1 bg-canvas overflow-hidden flex items-center justify-center py-6 px-8">
+          {isDemo ? (
+            <div className="h-full rounded-2xl bg-muted shrink-0" style={{ aspectRatio: "9/16" }} />
+          ) : (
+            <video
+              src={videoUrl}
+              controls
+              autoPlay
+              className="h-full rounded-2xl bg-black object-contain shrink-0"
+              style={{ aspectRatio: "9/16" }}
+            />
+          )}
         </div>
       </div>
     </>

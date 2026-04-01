@@ -51,21 +51,19 @@ export default function HomeGallery() {
         {FEED.map((item, i) => (
           <div
             key={i}
-            className="h-full flex"
+            className="h-full flex items-center justify-center"
             style={{ scrollSnapAlign: "start" }}
           >
-            {/* Left — caption pinned to bottom */}
-            <div className="flex-1 flex flex-col justify-end py-10 px-8">
-              <p className="text-sm font-semibold text-foreground mb-1">{item.title}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px]">{item.plot}</p>
-            </div>
-
-            {/* Right — portrait video placeholder */}
-            <div className="flex items-center py-6 pr-8">
+            {/* Phone + caption grouped, caption anchored to bottom-right of phone */}
+            <div className="flex items-end gap-4 py-6 h-full">
               <div
-                className="h-full rounded-2xl bg-muted"
+                className="h-full rounded-2xl bg-muted shrink-0"
                 style={{ aspectRatio: "9/16" }}
               />
+              <div className="pb-2 hidden lg:block lg:w-44 xl:w-56 2xl:w-64">
+                <p className="text-sm font-semibold text-foreground mb-1">{item.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{item.plot}</p>
+              </div>
             </div>
           </div>
         ))}

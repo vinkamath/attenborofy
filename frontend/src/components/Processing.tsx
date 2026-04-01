@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import Logo from "@/components/Logo";
+import HomeGallery from "@/components/HomeGallery";
 import { getJobStatus } from "@/lib/api";
 
 const QUOTES = [
@@ -68,20 +69,21 @@ export default function Processing() {
   const currentStep = getStepIndex(progress);
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-16">
-      <Card>
-        <CardContent className="pt-8 pb-8 text-center space-y-8">
+    <div className="flex flex-col md:h-screen md:flex-row md:overflow-hidden">
+      <div className="md:w-[380px] shrink-0 bg-panel flex flex-col px-8 py-8 md:overflow-y-auto">
+        <div className="flex items-center justify-between mb-8">
+          <Link to="/" className="no-underline">
+            <Logo />
+          </Link>
+        </div>
+
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 flex flex-col gap-5">
           {error ? (
             <>
-              <div className="text-5xl">:(</div>
-              <div>
-                <h2 className="text-xl font-semibold mb-2">
-                  Something went wrong
-                </h2>
-                <p className="text-destructive">{error}</p>
-              </div>
+              <p className="text-sm font-medium text-destructive">Something went wrong</p>
+              <p className="text-xs text-destructive">{error}</p>
               <button
-                className="text-sm text-primary underline"
+                className="text-xs text-primary underline text-left"
                 onClick={() => navigate("/")}
               >
                 Try again
@@ -89,37 +91,30 @@ export default function Processing() {
             </>
           ) : (
             <>
-              {/* Spinner */}
-              <div className="flex justify-center">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary" />
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-primary shrink-0" />
+                <p className="text-sm font-medium text-foreground">Narrating your video…</p>
               </div>
 
-              <div>
-                <h2 className="text-xl font-semibold mb-1">
-                  Narrating your video...
-                </h2>
-              </div>
-
-              {/* Step indicator */}
-              <div className="space-y-2 text-left max-w-xs mx-auto">
+              <div className="flex flex-col gap-2">
                 {STEPS.map((step, i) => (
                   <div
                     key={step.key}
-                    className={`flex items-center gap-3 text-sm transition-colors ${
+                    className={`flex items-center gap-2.5 text-xs transition-colors ${
                       i < currentStep
                         ? "text-muted-foreground"
                         : i === currentStep
                           ? "text-foreground font-medium"
-                          : "text-muted-foreground/40"
+                          : "text-muted-foreground/35"
                     }`}
                   >
-                    <span className="w-5 text-center">
+                    <span className="w-4 shrink-0 flex justify-center">
                       {i < currentStep ? (
-                        <span className="text-green-600">&#10003;</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       ) : i === currentStep ? (
-                        <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                       ) : (
-                        <span className="inline-block h-2 w-2 rounded-full bg-muted" />
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted" />
                       )}
                     </span>
                     {step.label}
@@ -127,18 +122,20 @@ export default function Processing() {
                 ))}
               </div>
 
-              {/* Quote */}
-              <blockquote className="text-sm italic text-muted-foreground border-l-2 pl-4 text-left">
+              <div className="border-t border-border" />
+
+              <blockquote className="text-xs italic text-muted-foreground leading-relaxed">
                 "{quote}"
-                <br />
-                <span className="text-xs not-italic">
-                  — Sir David Attenborough
-                </span>
+                <span className="block not-italic mt-1">— Sir David Attenborough</span>
               </blockquote>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <div className="flex-1 bg-canvas md:overflow-hidden">
+        <HomeGallery />
+      </div>
     </div>
   );
 }
