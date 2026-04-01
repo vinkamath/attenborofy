@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Logo from "@/components/Logo";
-import { getJobStatus, getNarration, getVideoUrl, redoNarration } from "@/lib/api";
+import { addToGallery, getJobStatus, getNarration, getVideoUrl, redoNarration } from "@/lib/api";
 
 export default function Result() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -14,6 +14,11 @@ export default function Result() {
   const [redoContext, setRedoContext] = useState("");
   const [redoLoading, setRedoLoading] = useState(false);
   const [redoError, setRedoError] = useState<string | null>(null);
+  const [showGalleryForm, setShowGalleryForm] = useState(false);
+  const [galleryTitle, setGalleryTitle] = useState("");
+  const [gallerySubmitting, setGallerySubmitting] = useState(false);
+  const [addedToGallery, setAddedToGallery] = useState(false);
+  const [galleryError, setGalleryError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!jobId) return;
@@ -111,6 +116,73 @@ export default function Result() {
     </div>
   ) : null;
 
+  const handleAddToGallery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!galleryTitle.trim() || !jobId) return;
+    setGallerySubmitting(true);
+    setGalleryError(null);
+    try {
+      await addToGallery(jobId, galleryTitle.trim());
+      setAddedToGallery(true);
+      setShowGalleryForm(false);
+    } catch (err) {
+      setGalleryError(err instanceof Error ? err.message : "Failed to add to gallery");
+    } finally {
+      setGallerySubmitting(false);
+    }
+  };
+
+  const gallerySection = !expired && videoAvailable ? (
+    <div className="flex flex-col gap-2">
+      {addedToGallery ? (
+        <Link
+          to="/gallery"
+          className="flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium border border-green-600 text-green-600 hover:bg-green-50 transition-colors"
+        >
+          Added to Gallery
+        </Link>
+      ) : showGalleryForm ? (
+        <form onSubmit={handleAddToGallery} className="flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Give your video a title"
+            value={galleryTitle}
+            onChange={(e) => setGalleryTitle(e.target.value)}
+            maxLength={100}
+            autoFocus
+            disabled={gallerySubmitting}
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          {galleryError && <p className="text-xs text-destructive">{galleryError}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={!galleryTitle.trim() || gallerySubmitting}
+              className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-colors disabled:opacity-50"
+            >
+              {gallerySubmitting ? "Adding..." : "Submit"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowGalleryForm(false); setGalleryError(null); }}
+              disabled={gallerySubmitting}
+              className="rounded-xl px-4 py-2 text-sm font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          onClick={() => setShowGalleryForm(true)}
+          className="flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors"
+        >
+          Add to Gallery
+        </button>
+      )}
+    </div>
+  ) : null;
+
   const downloadBtn = (
     <a
       href={videoUrl}
@@ -158,6 +230,7 @@ export default function Result() {
           </div>
           {downloadBtn}
           {redoSection}
+          {gallerySection}
         </div>
       </div>
 
@@ -180,6 +253,7 @@ export default function Result() {
             </div>
             {downloadBtn}
             {redoSection}
+            {gallerySection}
           </div>
         </div>
 
