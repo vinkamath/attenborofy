@@ -1,38 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import { getJobStatus, getNarration, getVideoUrl, redoNarration } from "@/lib/api";
-
-function formatRemaining(seconds: number): string {
-  const clamped = Math.max(0, seconds);
-  const h = Math.floor(clamped / 3600);
-  const m = Math.floor((clamped % 3600) / 60);
-  const s = clamped % 60;
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+import { Link, useParams } from "react-router-dom";
+import Logo from "@/components/Logo";
+import UploadCard from "@/components/UploadCard";
+import { getJobStatus, getNarration, getVideoUrl } from "@/lib/api";
 
 export default function Result() {
   const { jobId } = useParams<{ jobId: string }>();
-  const navigate = useNavigate();
   const [narration, setNarration] = useState<string>("");
-  const [redoContext, setRedoContext] = useState<string>("");
-  const [redoError, setRedoError] = useState<string | null>(null);
-  const [redoLoading, setRedoLoading] = useState(false);
+  const [videoAvailable, setVideoAvailable] = useState(true);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  const [videoAvailable, setVideoAvailable] = useState(true);
-  const [redoAvailable, setRedoAvailable] = useState(true);
 
   useEffect(() => {
     if (!jobId) return;
@@ -42,8 +19,7 @@ export default function Result() {
   useEffect(() => {
     if (!jobId) return;
     let mounted = true;
-
-    const refreshStatus = async () => {
+    const refresh = async () => {
       try {
         const status = await getJobStatus(jobId);
         if (!mounted) return;
@@ -56,153 +32,88 @@ export default function Result() {
           );
         }
         setVideoAvailable(status.video_available !== false);
-        setRedoAvailable(status.redo_available !== false);
       } catch {
         if (!mounted) return;
         setVideoAvailable(false);
-        setRedoAvailable(false);
-        setRemainingSeconds(0);
       }
     };
-
-    void refreshStatus();
-    const pollInterval = setInterval(() => {
-      void refreshStatus();
-    }, 5000);
-
-    return () => {
-      mounted = false;
-      clearInterval(pollInterval);
-    };
+    void refresh();
+    const poll = setInterval(refresh, 5000);
+    return () => { mounted = false; clearInterval(poll); };
   }, [jobId]);
 
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
-      const secs = Math.max(0, Math.floor(expiresAt - Date.now() / 1000));
-      setRemainingSeconds(secs);
+      setRemainingSeconds(Math.max(0, Math.floor(expiresAt - Date.now() / 1000)));
     }, 1000);
     return () => clearInterval(interval);
   }, [expiresAt]);
 
+  const isDemo = jobId === "demo";
+
   if (!jobId) return null;
 
-  const videoUrl = getVideoUrl(jobId);
-  const timeExpired = remainingSeconds !== null && remainingSeconds <= 0;
-  const downloadDisabled = timeExpired || !videoAvailable;
-  const redoDisabled = timeExpired || !redoAvailable;
-  const countdownLabel =
-    remainingSeconds !== null && !timeExpired ? ` (${formatRemaining(remainingSeconds)})` : "";
-  const handleRedo = async () => {
-    if (redoDisabled) return;
-    try {
-      setRedoLoading(true);
-      setRedoError(null);
-      const resp = await redoNarration(jobId, redoContext);
-      navigate(`/processing/${resp.job_id}`);
-    } catch (err) {
-      setRedoError(err instanceof Error ? err.message : "Failed to redo narration");
-    } finally {
-      setRedoLoading(false);
-    }
-  };
+  const videoUrl = isDemo ? "" : getVideoUrl(jobId);
+  const expired = !isDemo && remainingSeconds !== null && remainingSeconds <= 0;
+  const downloadDisabled = isDemo || expired || !videoAvailable;
+  const demoNarration = "Here, in the fluorescent wilderness of the open-plan office, the creature known as the domestic feline has claimed the standing desk as its own — an act of quiet, devastating dominance.";
+  const displayNarration = isDemo ? demoNarration : narration;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
-      {/* Video Player */}
-      <Card>
-        <CardContent className="p-0">
+    <div className="h-screen flex">
+      {/* Left panel */}
+      <div className="w-[380px] shrink-0 flex flex-col px-8 py-8 overflow-y-auto">
+        <Link to="/" className="no-underline mb-8 block">
+          <Logo />
+        </Link>
+
+        {/* Title + narration */}
+        <div className="flex-1 flex flex-col justify-end pb-6">
+          <p className="text-sm font-semibold text-foreground mb-1">Your narrated video</p>
+          {displayNarration && (
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">
+              {displayNarration}
+            </p>
+          )}
+        </div>
+
+        {/* Download button */}
+        <a
+          href={videoUrl}
+          download={`attenborofy_${jobId}.mp4`}
+          aria-disabled={downloadDisabled}
+          className={`flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium transition-colors mb-6 ${
+            downloadDisabled
+              ? "bg-muted text-muted-foreground pointer-events-none"
+              : "bg-primary text-primary-foreground hover:opacity-90"
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Download video
+        </a>
+
+        {/* Upload another */}
+        <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-widest">Narrate another</p>
+        <UploadCard />
+      </div>
+
+      {/* Right — video fills height like gallery */}
+      <div className="flex-1 flex items-center justify-center py-6 pr-8 pl-2">
+        {isDemo ? (
+          <div className="h-full rounded-2xl bg-muted" style={{ aspectRatio: "9/16" }} />
+        ) : (
           <video
             src={videoUrl}
             controls
             autoPlay
-            className="w-full rounded-lg"
+            className="h-full rounded-2xl bg-black object-contain"
+            style={{ aspectRatio: "9/16" }}
           />
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <div className="flex gap-3 justify-center">
-        <a
-          href={videoUrl}
-          download={`attenborofy_${jobId}.mp4`}
-          className={cn(
-            buttonVariants({ size: "lg" }),
-            downloadDisabled && "pointer-events-none opacity-50"
-          )}
-          aria-disabled={downloadDisabled}
-        >
-          {`Download video${countdownLabel}`}
-        </a>
-        <Link
-          to="/"
-          className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
-        >
-          Narrate Another
-        </Link>
+        )}
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Redo with Different Narration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <textarea
-            value={redoContext}
-            onChange={(e) => setRedoContext(e.target.value)}
-            placeholder="Optional direction for the new narration..."
-            disabled={redoDisabled || redoLoading}
-            className={cn(
-              "w-full min-h-24 rounded-md border bg-background px-3 py-2 text-sm",
-              redoDisabled && "opacity-60"
-            )}
-          />
-          {redoError ? (
-            <p className="text-sm text-destructive">{redoError}</p>
-          ) : redoDisabled ? (
-            <p className="text-sm text-muted-foreground">
-              Redo is unavailable because this video has been cleaned up.
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Reuses your video analysis and regenerates voiceover + subtitles.
-            </p>
-          )}
-          <button
-            type="button"
-            disabled={redoLoading || redoDisabled}
-            onClick={handleRedo}
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "w-full sm:w-auto",
-              redoDisabled && "pointer-events-none opacity-50"
-            )}
-          >
-            {redoDisabled
-              ? "Redo Unavailable"
-              : redoLoading
-                ? `Starting redo...${countdownLabel}`
-                : `Redo Narration${countdownLabel}`}
-          </button>
-        </CardContent>
-      </Card>
-
-      {/* Narration Text */}
-      {narration && (
-        <>
-          <Separator />
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Narration Script</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground leading-relaxed italic">
-                "{narration}"
-              </p>
-            </CardContent>
-          </Card>
-        </>
-      )}
     </div>
   );
 }

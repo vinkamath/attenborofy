@@ -58,3 +58,4 @@ Thumbs.db
 # Local CLI auth/config caches
 .azure-config/
 .gh-config/
+/.claude
