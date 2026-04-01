@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Logo from "@/components/Logo";
 import UploadCard from "@/components/UploadCard";
-import { getJobStatus, getNarration, getVideoUrl } from "@/lib/api";
+import { getJobStatus, getNarration, getVideoUrl, redoNarration } from "@/lib/api";
 
 export default function Result() {
   const { jobId } = useParams<{ jobId: string }>();
+  const navigate = useNavigate();
   const [narration, setNarration] = useState<string>("");
   const [videoAvailable, setVideoAvailable] = useState(true);
+  const [redoAvailable, setRedoAvailable] = useState(false);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [redoContext, setRedoContext] = useState("");
+  const [redoLoading, setRedoLoading] = useState(false);
+  const [redoError, setRedoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!jobId) return;
@@ -32,6 +37,7 @@ export default function Result() {
           );
         }
         setVideoAvailable(status.video_available !== false);
+        setRedoAvailable(status.redo_available === true);
       } catch {
         if (!mounted) return;
         setVideoAvailable(false);
@@ -59,6 +65,46 @@ export default function Result() {
   const downloadDisabled = isDemo || expired || !videoAvailable;
   const demoNarration = "Here, in the fluorescent wilderness of the open-plan office, the creature known as the domestic feline has claimed the standing desk as its own — an act of quiet, devastating dominance.";
   const displayNarration = isDemo ? demoNarration : narration;
+
+  const handleRedo = async () => {
+    if (!jobId) return;
+    setRedoLoading(true);
+    setRedoError(null);
+    try {
+      const result = await redoNarration(jobId, redoContext);
+      navigate(`/processing/${result.job_id}`);
+    } catch (err) {
+      setRedoError(err instanceof Error ? err.message : "Something went wrong");
+      setRedoLoading(false);
+    }
+  };
+
+  const showRedo = !isDemo && !expired && redoAvailable;
+
+  const redoSection = showRedo ? (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm font-semibold text-foreground">Redo narration</p>
+      <textarea
+        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+        rows={3}
+        placeholder="Optional: describe what to focus on (e.g. 'highlight the dog')"
+        value={redoContext}
+        onChange={(e) => setRedoContext(e.target.value)}
+        disabled={redoLoading}
+      />
+      {redoError && <p className="text-xs text-destructive">{redoError}</p>}
+      <button
+        onClick={handleRedo}
+        disabled={redoLoading}
+        className="flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M1.5 7A5.5 5.5 0 1 0 3 3.5M1.5 1v3h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        {redoLoading ? "Starting…" : "Redo narration"}
+      </button>
+    </div>
+  ) : null;
 
   const downloadBtn = (
     <a
@@ -123,13 +169,8 @@ export default function Result() {
             Add to gallery
           </button>
 
-          {/* Tertiary */}
-          <Link
-            to="/"
-            className="flex items-center justify-center w-full rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Narrate another
-          </Link>
+          {/* Redo narration */}
+          {redoSection}
         </div>
       </div>
 
@@ -156,6 +197,7 @@ export default function Result() {
               )}
             </div>
             {downloadBtn}
+            {redoSection}
           </div>
 
           {/* Right: video */}
