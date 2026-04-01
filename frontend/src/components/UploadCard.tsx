@@ -191,7 +191,10 @@ export default function UploadCard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.845v6.31a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-foreground mb-1">Drop your video here</p>
+            <p className="text-sm font-medium text-foreground mb-1">
+              <span className="md:hidden">Tap to upload video</span>
+              <span className="hidden md:inline">Drop your video here</span>
+            </p>
             <p className="text-xs text-muted-foreground">MP4, MOV, WebM · {durationLimits.min}–{durationLimits.max}s</p>
             <input ref={fileInputRef} type="file" accept="video/*" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) validateAndSetFile(f); }} />

@@ -40,33 +40,43 @@ export default function HomeGallery() {
   };
 
   return (
-    <div
-      ref={ref}
-      onScroll={handleScroll}
-      className="h-full overflow-y-scroll"
-      style={{ scrollSnapType: "y mandatory" }}
-    >
-      {FEED.map((item, i) => (
-        <div
-          key={i}
-          className="h-full flex"
-          style={{ scrollSnapAlign: "start" }}
-        >
-          {/* Left — caption pinned to bottom */}
-          <div className="flex-1 flex flex-col justify-end py-10 px-8">
-            <p className="text-sm font-semibold text-foreground mb-1">{item.title}</p>
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px]">{item.plot}</p>
-          </div>
+    <>
+      {/* Desktop: infinite snap-scroll */}
+      <div
+        ref={ref}
+        onScroll={handleScroll}
+        className="hidden md:block h-full overflow-y-scroll"
+        style={{ scrollSnapType: "y mandatory" }}
+      >
+        {FEED.map((item, i) => (
+          <div
+            key={i}
+            className="h-full flex"
+            style={{ scrollSnapAlign: "start" }}
+          >
+            {/* Left — caption pinned to bottom */}
+            <div className="flex-1 flex flex-col justify-end py-10 px-8">
+              <p className="text-sm font-semibold text-foreground mb-1">{item.title}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px]">{item.plot}</p>
+            </div>
 
-          {/* Right — portrait video placeholder */}
-          <div className="flex items-center py-6 pr-8">
-            <div
-              className="h-full rounded-2xl bg-muted"
-              style={{ aspectRatio: "9/16" }}
-            />
+            {/* Right — portrait video placeholder */}
+            <div className="flex items-center py-6 pr-8">
+              <div
+                className="h-full rounded-2xl bg-muted"
+                style={{ aspectRatio: "9/16" }}
+              />
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* Mobile: simple vertical list */}
+      <div className="md:hidden px-4 py-4 flex flex-col gap-4">
+        {EXAMPLES.map((item, i) => (
+          <div key={i} className="w-full rounded-2xl bg-muted" style={{ aspectRatio: "9/16" }} />
+        ))}
+      </div>
+    </>
   );
 }

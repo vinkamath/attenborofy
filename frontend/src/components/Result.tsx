@@ -61,58 +61,60 @@ export default function Result() {
   const displayNarration = isDemo ? demoNarration : narration;
 
   return (
-    <div className="h-screen flex">
-      {/* Left panel */}
-      <div className="w-[380px] shrink-0 flex flex-col px-8 py-8 overflow-y-auto">
-        <Link to="/" className="no-underline mb-8 block">
-          <Logo />
-        </Link>
+    <div className="h-screen flex flex-col px-8 py-8 gap-8">
+      {/* Logo */}
+      <Link to="/" className="no-underline block shrink-0">
+        <Logo />
+      </Link>
 
-        {/* Title + narration */}
-        <div className="flex-1 flex flex-col justify-end pb-6">
-          <p className="text-sm font-semibold text-foreground mb-1">Your narrated video</p>
-          {displayNarration && (
-            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">
-              {displayNarration}
-            </p>
-          )}
+      {/* 3-column main content */}
+      <div className="flex-1 flex gap-8 overflow-hidden min-h-0">
+        {/* Left: Upload another */}
+        <div className="shrink-0 w-[325px]">
+          <UploadCard />
         </div>
 
-        {/* Download button */}
-        <a
-          href={videoUrl}
-          download={`attenborofy_${jobId}.mp4`}
-          aria-disabled={downloadDisabled}
-          className={`flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium transition-colors mb-6 ${
-            downloadDisabled
-              ? "bg-muted text-muted-foreground pointer-events-none"
-              : "bg-primary text-primary-foreground hover:opacity-90"
-          }`}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Download video
-        </a>
+        {/* Middle: narration + download */}
+        <div className="w-[260px] shrink-0 flex flex-col justify-end gap-4 ml-auto">
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-2">Your narrated video</p>
+            {displayNarration && (
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">
+                {displayNarration}
+              </p>
+            )}
+          </div>
+          <a
+            href={videoUrl}
+            download={`attenborofy_${jobId}.mp4`}
+            aria-disabled={downloadDisabled}
+            className={`flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+              downloadDisabled
+                ? "bg-muted text-muted-foreground pointer-events-none"
+                : "bg-primary text-primary-foreground hover:opacity-90"
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Download video
+          </a>
+        </div>
 
-        {/* Upload another */}
-        <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-widest">Narrate another</p>
-        <UploadCard />
-      </div>
-
-      {/* Right — video fills height like gallery */}
-      <div className="flex-1 flex items-center justify-center py-6 pr-8 pl-2">
-        {isDemo ? (
-          <div className="h-full rounded-2xl bg-muted" style={{ aspectRatio: "9/16" }} />
-        ) : (
-          <video
-            src={videoUrl}
-            controls
-            autoPlay
-            className="h-full rounded-2xl bg-black object-contain"
-            style={{ aspectRatio: "9/16" }}
-          />
-        )}
+        {/* Right: video */}
+        <div className="flex-1 flex items-center justify-end min-w-0">
+          {isDemo ? (
+            <div className="h-full max-w-full rounded-2xl bg-muted" style={{ aspectRatio: "9/16" }} />
+          ) : (
+            <video
+              src={videoUrl}
+              controls
+              autoPlay
+              className="h-full max-w-full rounded-2xl bg-black object-contain"
+              style={{ aspectRatio: "9/16" }}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
