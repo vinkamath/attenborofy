@@ -55,15 +55,21 @@ export default function Result() {
     return () => clearInterval(interval);
   }, [expiresAt]);
 
-  const isDemo = jobId === "demo";
-
   if (!jobId) return null;
 
-  const videoUrl = isDemo ? "" : getVideoUrl(jobId);
-  const expired = !isDemo && remainingSeconds !== null && remainingSeconds <= 0;
-  const downloadDisabled = isDemo || expired || !videoAvailable;
-  const demoNarration = "Here, in the fluorescent wilderness of the open-plan office, the creature known as the domestic feline has claimed the standing desk as its own — an act of quiet, devastating dominance.";
-  const displayNarration = isDemo ? demoNarration : narration;
+  const videoUrl = getVideoUrl(jobId);
+  const expired = remainingSeconds !== null && remainingSeconds <= 0;
+  const downloadDisabled = expired || !videoAvailable;
+
+  const formatRemaining = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    if (h > 0) return ` (${h}:${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")})`;
+    return ` (${min}:${String(sec).padStart(2, "0")})`;
+  };
+  const countdownLabel = remainingSeconds !== null && remainingSeconds > 0 ? formatRemaining(remainingSeconds) : "";
 
   const handleRedo = async () => {
     if (!jobId) return;
@@ -78,7 +84,7 @@ export default function Result() {
     }
   };
 
-  const showRedo = !isDemo && !expired && redoAvailable;
+  const showRedo = !expired && redoAvailable;
 
   const redoSection = showRedo ? (
     <div className="flex flex-col gap-2">
@@ -100,7 +106,7 @@ export default function Result() {
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M1.5 7A5.5 5.5 0 1 0 3 3.5M1.5 1v3h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        {redoLoading ? "Starting…" : "Redo narration"}
+        {redoLoading ? "Starting…" : `Redo narration${countdownLabel}`}
       </button>
     </div>
   ) : null;
@@ -119,7 +125,7 @@ export default function Result() {
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
         <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
-      Download video
+      {`Download video${countdownLabel}`}
     </a>
   );
 
@@ -134,24 +140,20 @@ export default function Result() {
         </div>
 
         <div className="px-4">
-          {isDemo ? (
-            <div className="w-full rounded-2xl bg-muted" style={{ aspectRatio: "9/16" }} />
-          ) : (
-            <video
-              src={videoUrl}
-              controls
-              autoPlay
-              className="w-full rounded-2xl bg-black object-contain"
-              style={{ aspectRatio: "9/16" }}
-            />
-          )}
+          <video
+            src={videoUrl}
+            controls
+            autoPlay
+            className="w-full rounded-2xl bg-black object-contain"
+            style={{ aspectRatio: "9/16" }}
+          />
         </div>
 
         <div className="px-4 py-6 flex flex-col gap-3">
           <div className="mb-1">
             <p className="font-semibold text-foreground mb-1">Your narrated video</p>
-            {displayNarration && (
-              <p className="text-sm text-muted-foreground leading-relaxed">{displayNarration}</p>
+            {narration && (
+              <p className="text-sm text-muted-foreground leading-relaxed">{narration}</p>
             )}
           </div>
           {downloadBtn}
@@ -172,8 +174,8 @@ export default function Result() {
           <div className="flex flex-col gap-4">
             <div>
               <p className="text-sm font-semibold text-foreground mb-2">Your narrated video</p>
-              {displayNarration && (
-                <p className="text-xs text-muted-foreground leading-relaxed">{displayNarration}</p>
+              {narration && (
+                <p className="text-xs text-muted-foreground leading-relaxed">{narration}</p>
               )}
             </div>
             {downloadBtn}
@@ -181,19 +183,15 @@ export default function Result() {
           </div>
         </div>
 
-        {/* Right canvas — video in same position as phone mockup */}
+        {/* Right canvas — video */}
         <div className="flex-1 bg-canvas overflow-hidden flex items-center justify-center py-6 px-8">
-          {isDemo ? (
-            <div className="h-full rounded-2xl bg-muted shrink-0" style={{ aspectRatio: "9/16" }} />
-          ) : (
-            <video
-              src={videoUrl}
-              controls
-              autoPlay
-              className="h-full rounded-2xl bg-black object-contain shrink-0"
-              style={{ aspectRatio: "9/16" }}
-            />
-          )}
+          <video
+            src={videoUrl}
+            controls
+            autoPlay
+            className="h-full rounded-2xl bg-black object-contain shrink-0"
+            style={{ aspectRatio: "9/16" }}
+          />
         </div>
       </div>
     </>

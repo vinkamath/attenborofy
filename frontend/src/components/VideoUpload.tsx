@@ -11,9 +11,6 @@ export default function VideoUpload() {
           <Link to="/" className="no-underline">
             <Logo />
           </Link>
-          <Link to="/result/demo" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            Preview result →
-          </Link>
         </div>
         <UploadCard />
       </div>
