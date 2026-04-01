@@ -73,7 +73,7 @@ export default function HomeGallery() {
 
       {/* Mobile: simple vertical list */}
       <div className="md:hidden px-4 py-4 flex flex-col gap-4">
-        {EXAMPLES.map((item, i) => (
+        {EXAMPLES.slice(0, 8).map((item, i) => (
           <div key={i} className="w-full rounded-2xl bg-muted" style={{ aspectRatio: "9/16" }} />
         ))}
       </div>

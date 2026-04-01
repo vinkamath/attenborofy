@@ -7,7 +7,7 @@ export default function Layout() {
 
   if (isFullBleed) {
     return (
-      <div className="h-screen overflow-hidden">
+      <div className="min-h-screen md:h-screen md:overflow-hidden">
         <Outlet />
       </div>
     );
