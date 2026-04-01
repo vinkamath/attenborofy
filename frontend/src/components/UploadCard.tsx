@@ -3,33 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { getPublicAppConfig, uploadVideo, getJobStatus } from "@/lib/api";
+import { getPublicAppConfig, uploadVideo } from "@/lib/api";
 
 const DEFAULT_LIMITS = { min: 0, max: 60 };
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/x-matroska"];
-
-const STEPS = [
-  { key: "Validating", label: "Checking if Sir David would approve" },
-  { key: "Analyzing", label: "Studying the footage intently" },
-  { key: "Writing", label: "Calling Sir David Attenborough" },
-  { key: "Generating", label: "Recording the telephone conversation" },
-  { key: "Creating", label: "Deciphering what he said through the static" },
-  { key: "Composing", label: "Posting the final tape via Royal Mail" },
-];
-
-const QUOTES = [
-  "I once ate a gas station sushi roll at 2am and honestly? No regrets.",
-  "The secret to a long life is avoiding eye contact with seagulls. They know what they did.",
-  "I have never trusted a man who doesn't cry at the end of a nature documentary. Especially mine.",
-  "WiFi password? I don't believe in them. Nature has no passwords.",
-];
-
-function getStepIndex(progress: string): number {
-  for (let i = STEPS.length - 1; i >= 0; i--) {
-    if (progress.includes(STEPS[i].key)) return i;
-  }
-  return -1;
-}
 
 export default function UploadCard() {
   const navigate = useNavigate();
@@ -43,37 +20,12 @@ export default function UploadCard() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [durationLimits, setDurationLimits] = useState(DEFAULT_LIMITS);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [progress, setProgress] = useState("Starting...");
-  const [processingError, setProcessingError] = useState<string | null>(null);
-  const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
 
   useEffect(() => {
     getPublicAppConfig()
       .then((c) => setDurationLimits({ min: c.video_min_duration_seconds, max: c.video_max_duration_seconds }))
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (!jobId) return;
-    const interval = setInterval(async () => {
-      try {
-        const status = await getJobStatus(jobId);
-        if (status.status === "complete") {
-          clearInterval(interval);
-          navigate(`/result/${jobId}`, { replace: true });
-          return;
-        }
-        if (status.status === "error") {
-          clearInterval(interval);
-          setProcessingError(status.error || "Processing failed");
-          return;
-        }
-        setProgress(status.progress);
-      } catch { /* retry */ }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [jobId, navigate]);
 
   const validateAndSetFile = useCallback((f: File) => {
     setError(null);
@@ -112,8 +64,7 @@ export default function UploadCard() {
     setError(null);
     try {
       const result = await uploadVideo(file, context, setUploadProgress);
-      setUploading(false);
-      setJobId(result.job_id);
+      navigate(`/processing/${result.job_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
       setUploading(false);
@@ -124,54 +75,6 @@ export default function UploadCard() {
     setFile(null); setPreview(null); setDuration(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-
-  const currentStep = getStepIndex(progress);
-
-  if (jobId) {
-    return (
-      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 flex flex-col gap-5">
-        {processingError ? (
-          <>
-            <p className="text-sm font-medium text-destructive">Something went wrong</p>
-            <p className="text-xs text-destructive">{processingError}</p>
-            <button className="text-xs text-primary underline text-left" onClick={() => { setJobId(null); setProcessingError(null); }}>
-              Try again
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-3">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-primary shrink-0" />
-              <p className="text-sm font-medium text-foreground">Narrating your video…</p>
-            </div>
-            <div className="flex flex-col gap-2">
-              {STEPS.map((step, i) => (
-                <div key={step.key} className={`flex items-center gap-2.5 text-xs transition-colors ${
-                  i < currentStep ? "text-muted-foreground" : i === currentStep ? "text-foreground font-medium" : "text-muted-foreground/35"
-                }`}>
-                  <span className="w-4 shrink-0 flex justify-center">
-                    {i < currentStep ? (
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    ) : i === currentStep ? (
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                    ) : (
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted" />
-                    )}
-                  </span>
-                  {step.label}
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-border" />
-            <blockquote className="text-xs italic text-muted-foreground leading-relaxed">
-              "{quote}"
-              <span className="block not-italic mt-1">— Sir David Attenborough <span className="text-muted-foreground/60">(no really)</span></span>
-            </blockquote>
-          </>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-border p-6 flex flex-col gap-5">
