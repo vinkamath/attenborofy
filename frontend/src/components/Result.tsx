@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Logo from "@/components/Logo";
-import { addToGallery, getJobStatus, getNarration, getVideoUrl, redoNarration } from "@/lib/api";
+import { type GalleryItem, addToGallery, getJobStatus, getNarration, getVideoUrl, redoNarration } from "@/lib/api";
 
 export default function Result() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -17,7 +17,7 @@ export default function Result() {
   const [showGalleryForm, setShowGalleryForm] = useState(false);
   const [galleryTitle, setGalleryTitle] = useState("");
   const [gallerySubmitting, setGallerySubmitting] = useState(false);
-  const [addedToGallery, setAddedToGallery] = useState(false);
+  const [galleryItem, setGalleryItem] = useState<GalleryItem | null>(null);
   const [galleryError, setGalleryError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,6 +63,7 @@ export default function Result() {
   if (!jobId) return null;
 
   const videoUrl = getVideoUrl(jobId);
+  const displayVideoUrl = galleryItem ? galleryItem.video_url : videoUrl;
   const expired = remainingSeconds !== null && remainingSeconds <= 0;
   const downloadDisabled = expired || !videoAvailable;
 
@@ -122,8 +123,8 @@ export default function Result() {
     setGallerySubmitting(true);
     setGalleryError(null);
     try {
-      await addToGallery(jobId, galleryTitle.trim());
-      setAddedToGallery(true);
+      const item = await addToGallery(jobId, galleryTitle.trim());
+      setGalleryItem(item);
       setShowGalleryForm(false);
     } catch (err) {
       setGalleryError(err instanceof Error ? err.message : "Failed to add to gallery");
@@ -134,7 +135,7 @@ export default function Result() {
 
   const gallerySection = !expired && videoAvailable ? (
     <div className="flex flex-col gap-2">
-      {addedToGallery ? (
+      {galleryItem ? (
         <Link
           to="/gallery"
           className="flex items-center justify-center gap-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium border border-green-600 text-green-600 hover:bg-green-50 transition-colors"
@@ -213,9 +214,9 @@ export default function Result() {
 
         <div className="px-4">
           <video
-            src={videoUrl}
+            src={displayVideoUrl}
             controls
-            autoPlay
+            autoPlay={!galleryItem}
             className="w-full rounded-2xl bg-black object-contain"
             style={{ aspectRatio: "9/16" }}
           />
@@ -259,13 +260,21 @@ export default function Result() {
 
         {/* Right canvas — video */}
         <div className="flex-1 bg-canvas overflow-hidden flex items-center justify-center py-6 px-8">
-          <video
-            src={videoUrl}
-            controls
-            autoPlay
-            className="h-full rounded-2xl bg-black object-contain shrink-0"
-            style={{ aspectRatio: "9/16" }}
-          />
+          <div className="flex items-end gap-4 h-full">
+            <video
+              src={displayVideoUrl}
+              controls
+              autoPlay={!galleryItem}
+              className="h-full rounded-2xl bg-black object-contain shrink-0"
+              style={{ aspectRatio: "9/16" }}
+            />
+            {galleryItem && (
+              <div className="pb-2 hidden lg:block lg:w-44 xl:w-56 2xl:w-64">
+                <p className="text-sm font-semibold text-foreground mb-1">{galleryItem.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{galleryItem.description}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
