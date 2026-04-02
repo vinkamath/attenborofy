@@ -25,6 +25,7 @@ export interface GalleryItem {
 export interface PublicAppConfig {
   video_min_duration_seconds: number;
   video_max_duration_seconds: number;
+  gallery_enabled: boolean;
 }
 
 export async function getPublicAppConfig(): Promise<PublicAppConfig> {
