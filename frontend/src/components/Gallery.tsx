@@ -9,15 +9,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type GalleryItem, getGallery } from "@/lib/api";
+import { type GalleryItem, getGallery, getPublicAppConfig } from "@/lib/api";
+import LazyVideo from "@/components/LazyVideo";
 
 export default function Gallery() {
   const [items, setItems] = useState<GalleryItem[]>([]);
+  const [galleryEnabled, setGalleryEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getGallery()
-      .then(setItems)
+    Promise.all([getPublicAppConfig(), getGallery()])
+      .then(([cfg, galleryItems]) => {
+        setGalleryEnabled(cfg.gallery_enabled);
+        setItems(galleryItems);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -40,16 +45,32 @@ export default function Gallery() {
             <div className="text-5xl">🎬</div>
             <div>
               <h3 className="font-semibold text-lg mb-1">
-                No videos yet
+                {galleryEnabled ? "No videos yet" : "Gallery unavailable"}
               </h3>
               <p className="text-muted-foreground text-sm">
-                Be the first to share! Upload a video, get it narrated,
-                and add it to the gallery.
+                {galleryEnabled ? (
+                  <>
+                    Be the first to share! Upload a video, get it narrated,
+                    and add it to the gallery.
+                  </>
+                ) : (
+                  <>
+                    This server does not have community gallery storage configured.
+                    Set{" "}
+                    <code className="text-xs bg-muted px-1 rounded">
+                      AZURE_STORAGE_CONNECTION_STRING
+                    </code>{" "}
+                    on the deployment (see <code className="text-xs bg-muted px-1 rounded">.env.example</code>
+                    ).
+                  </>
+                )}
               </p>
             </div>
-            <Link to="/" className={cn(buttonVariants())}>
-              Upload a Video
-            </Link>
+            {galleryEnabled && (
+              <Link to="/" className={cn(buttonVariants())}>
+                Upload a Video
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -57,12 +78,12 @@ export default function Gallery() {
           {items.map((item, i) => (
             <Card key={item.id ?? i} className="overflow-hidden">
               <CardContent className="p-0">
-                <video
+                <LazyVideo
                   src={item.video_url}
                   poster={item.thumbnail_url || undefined}
-                  controls
                   preload="metadata"
-                  className="w-full aspect-video object-cover"
+                  className="w-full aspect-video bg-black"
+                  mediaClassName="w-full h-full object-cover"
                 />
               </CardContent>
               <CardHeader className="pb-4">
