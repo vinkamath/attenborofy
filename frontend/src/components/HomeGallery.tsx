@@ -1,48 +1,31 @@
-import { useEffect, useRef, useState } from "react";
-import { type GalleryItem, getGallery } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { type GalleryItem, getGallery, getPublicAppConfig } from "@/lib/api";
+import LazyVideo from "@/components/LazyVideo";
 
 export default function HomeGallery() {
   const [items, setItems] = useState<GalleryItem[]>([]);
-  const ref = useRef<HTMLDivElement>(null);
+  const [galleryEnabled, setGalleryEnabled] = useState(true);
 
   useEffect(() => {
-    getGallery().then(setItems).catch(() => {});
+    Promise.all([getPublicAppConfig(), getGallery()])
+      .then(([cfg, galleryItems]) => {
+        setGalleryEnabled(cfg.gallery_enabled);
+        setItems(galleryItems);
+      })
+      .catch(() => {});
   }, []);
 
-  // Triplicate for seamless infinite scroll
-  const feed = items.length > 0 ? [...items, ...items, ...items] : [];
-  const count = items.length;
-
-  // On mount or when items load, jump to the middle copy
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || count === 0) return;
-    // Wait a frame so the DOM has rendered the feed
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight / 3;
-    });
-  }, [count]);
-
-  // When near either end, silently teleport to the middle copy
-  const handleScroll = () => {
-    const el = ref.current;
-    if (!el || count === 0) return;
-    const third = el.scrollHeight / 3;
-    if (el.scrollTop < third * 0.25) {
-      el.scrollTop += third;
-    } else if (el.scrollTop > third * 1.75) {
-      el.scrollTop -= third;
-    }
-  };
-
   if (items.length === 0) {
+    const emptyMessage = galleryEnabled
+      ? "Gallery videos will appear here"
+      : "Community gallery is unavailable — Azure Blob Storage is not configured for this deployment.";
     return (
       <>
-        <div className="hidden md:flex h-full items-center justify-center">
-          <p className="text-sm text-muted-foreground/40">Gallery videos will appear here</p>
+        <div className="hidden md:flex h-full items-center justify-center px-4">
+          <p className="text-sm text-muted-foreground/40 text-center max-w-xs">{emptyMessage}</p>
         </div>
         <div className="md:hidden px-4 py-8 text-center text-muted-foreground/40">
-          <p className="text-sm">Gallery videos will appear here</p>
+          <p className="text-sm">{emptyMessage}</p>
         </div>
       </>
     );
@@ -50,26 +33,24 @@ export default function HomeGallery() {
 
   return (
     <>
-      {/* Desktop: infinite snap-scroll */}
+      {/* Desktop: snap-scroll without duplicated video DOM */}
       <div
-        ref={ref}
-        onScroll={handleScroll}
         className="hidden md:block h-full overflow-y-scroll"
         style={{ scrollSnapType: "y mandatory" }}
       >
-        {feed.map((item, i) => (
+        {items.map((item, i) => (
           <div
             key={i}
             className="h-full flex items-center justify-center"
             style={{ scrollSnapAlign: "start" }}
           >
             <div className="flex items-end gap-4 py-6 h-full">
-              <video
+              <LazyVideo
                 src={item.video_url}
                 poster={item.thumbnail_url || undefined}
-                controls
                 preload="metadata"
-                className="h-full rounded-2xl bg-black object-contain shrink-0"
+                className="h-full rounded-2xl bg-black shrink-0"
+                mediaClassName="w-full h-full object-contain rounded-2xl"
                 style={{ aspectRatio: "9/16" }}
               />
               <div className="pb-2 hidden lg:block lg:w-44 xl:w-56 2xl:w-64">
@@ -85,12 +66,12 @@ export default function HomeGallery() {
       <div className="md:hidden px-4 py-4 flex flex-col gap-4">
         {items.map((item, i) => (
           <div key={i} className="flex flex-col gap-2">
-            <video
+            <LazyVideo
               src={item.video_url}
               poster={item.thumbnail_url || undefined}
-              controls
               preload="metadata"
-              className="w-full rounded-2xl bg-black object-contain"
+              className="w-full rounded-2xl bg-black"
+              mediaClassName="w-full h-full object-contain rounded-2xl"
               style={{ aspectRatio: "9/16" }}
             />
             <div className="px-1">
