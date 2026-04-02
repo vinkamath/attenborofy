@@ -6,16 +6,21 @@
 
 | Token | Value | Usage |
 |---|---|---|
-| `--background` | `oklch(0.935 0.022 265)` | Soft periwinkle — full-page background |
-| `--canvas` | `oklch(0.955 0.015 265)` | Slightly lighter periwinkle — right-side blank canvas |
-| `--panel` | `oklch(0.935 0.022 265)` | Left upload panel background |
+| `--background` | gradient `#C5DCFD` → `#FFFFFF` (to bottom left, 65%) | Full-page background gradient |
 | `--card` | `oklch(1 0 0)` | White — card/form surface |
 | `--foreground` | `oklch(0.13 0.01 265)` | Near-black — primary text |
 | `--muted-foreground` | `oklch(0.52 0.01 265)` | Medium grey — labels, hints |
-| `--primary` | `oklch(0.52 0.22 263)` | Blue — CTA buttons, active states |
+| `--primary` | `#136DFF` | Blue — CTA button (enabled) |
 | `--primary-foreground` | `oklch(1 0 0)` | White — text on primary |
 | `--border` | `oklch(0.9 0.015 265)` | Subtle periwinkle-grey — dividers, card borders |
 | `--destructive` | `oklch(0.577 0.245 27.325)` | Red — error states |
+
+### Button states
+
+| State | Color |
+|---|---|
+| Enabled | `#136DFF` |
+| Disabled | `#5494F7` |
 
 ### Tailwind classes
 
@@ -80,7 +85,8 @@ The landing page uses a **1/3 + 2/3 split** at full viewport height.
 ### Button (primary CTA)
 - Full-width: `w-full`
 - Size: `lg`
-- Uses shadcn `<Button>` with default variant (maps to `--primary`)
+- Enabled: `#136DFF`
+- Disabled: `#5494F7` (no opacity reduction)
 
 ### Textarea
 - `resize-none text-sm`

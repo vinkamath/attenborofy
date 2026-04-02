@@ -238,7 +238,7 @@ export default function Result() {
       {/* ── Desktop layout ── */}
       <div className="hidden md:flex h-screen flex-row overflow-hidden">
         {/* Left panel */}
-        <div className="w-[380px] shrink-0 bg-panel flex flex-col px-8 py-8 overflow-y-auto">
+        <div className="w-[380px] shrink-0 flex flex-col px-8 py-8 overflow-y-auto">
           <div className="mb-8">
             <Link to="/" className="no-underline block">
               <Logo />
@@ -259,7 +259,7 @@ export default function Result() {
         </div>
 
         {/* Right canvas — video */}
-        <div className="flex-1 bg-canvas overflow-hidden flex items-center justify-center py-6 px-8">
+        <div className="flex-1 overflow-hidden flex items-center justify-center py-6 px-8">
           <div className="flex items-end gap-4 h-full">
             <video
               src={displayVideoUrl}

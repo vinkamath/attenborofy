@@ -59,7 +59,7 @@
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.13 0.01 265);
     /* Purple-violet primary action */
-    --primary: #3767EA;
+    --primary: #136DFF;
     --primary-foreground: oklch(1 0 0);
     --secondary: oklch(0.94 0.018 265);
     --secondary-foreground: oklch(0.13 0.01 265);
@@ -128,7 +128,9 @@
     @apply border-border outline-ring/50;
     }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: linear-gradient(to bottom left, #C5DCFD 0%, #FFFFFF 65%);
+    min-height: 100vh;
     }
   html {
     @apply font-sans;
