@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: frontend-build
+        name: Frontend build (tsc + vite)
+        entry: bash -c 'cd frontend && npm run build'
+        language: system
+        pass_filenames: false
