@@ -5,9 +5,6 @@ import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { type GalleryItem, getGallery, getPublicAppConfig } from "@/lib/api";
 import LazyVideo from "@/components/LazyVideo";
@@ -86,10 +83,6 @@ export default function Gallery() {
                   mediaClassName="w-full h-full object-cover"
                 />
               </CardContent>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base">{item.title}</CardTitle>
-                <CardDescription>{item.description}</CardDescription>
-              </CardHeader>
             </Card>
           ))}
         </div>

@@ -244,12 +244,9 @@ def add_to_gallery():
 
     data = request.get_json() or {}
     job_id = data.get("job_id", "").strip()
-    title = data.get("title", "").strip()
 
-    if not job_id or not title:
-        return jsonify({"error": "job_id and title are required"}), 400
-    if len(title) > 100:
-        return jsonify({"error": "Title must be 100 characters or less"}), 400
+    if not job_id:
+        return jsonify({"error": "job_id is required"}), 400
 
     job = job_store.get(job_id)
     if not job or job["status"] != "complete":
@@ -291,8 +288,6 @@ def add_to_gallery():
 
     item = {
         "id": gallery_id,
-        "title": title,
-        "description": job.get("narration", ""),
         "video_url": video_url,
         "thumbnail_url": thumbnail_url,
         "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
@@ -303,7 +298,7 @@ def add_to_gallery():
     items.insert(0, item)
     gallery_store.save_gallery_items(items)
 
-    logger.info("Added to gallery: id=%s title='%s'", gallery_id, title)
+    logger.info("Added to gallery: id=%s", gallery_id)
     return jsonify(item), 201
 
 
