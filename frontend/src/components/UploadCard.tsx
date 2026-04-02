@@ -81,8 +81,8 @@ export default function UploadCard() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {!file ? (
           <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-              dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors bg-input ${
+              dragActive ? "border-primary" : "border-border hover:border-primary/40"
             }`}
             onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
             onDragLeave={() => setDragActive(false)}
@@ -118,9 +118,8 @@ export default function UploadCard() {
           <label htmlFor="context-new" className="text-sm font-medium text-foreground">
             Plot or character context <span className="text-muted-foreground font-normal">(optional)</span>
           </label>
-          <Textarea id="context-new" placeholder='e.g. "My cat Mr. Whiskers stalking a laser pointer..."'
-            value={context} onChange={(e) => setContext(e.target.value)} rows={3} className="resize-none text-sm" />
-          <p className="text-xs text-muted-foreground">Names, locations, or backstory — anything that adds flavor.</p>
+          <Textarea id="context-new" placeholder={`My golden retriever Steve thinks he's people and refuses to sit in the backseat...`}
+            value={context} onChange={(e) => setContext(e.target.value)} rows={3} className="resize-none text-sm placeholder:text-[#888888]" />
         </div>
 
         {error && <div className="text-xs text-destructive bg-destructive/8 rounded-lg px-3 py-2.5">{error}</div>}
