@@ -2,6 +2,38 @@
 
 A web application that adds video narration in the style of Sir David Attenborough.
 
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph client [Client]
+    UI["React + Vite"]
+  end
+  subgraph backend [Backend]
+    API["Flask — REST API and static UI"]
+    Jobs["Background jobs"]
+    Pipe["pipeline.py"]
+  end
+  subgraph local [Local]
+    FF["ffmpeg and ffprobe"]
+  end
+  subgraph apis [External APIs]
+    LLM["GPT vision (OpenAI or Azure OpenAI)"]
+    TTS["ElevenLabs TTS"]
+  end
+  Gallery["Azure Blob (optional gallery)"]
+
+  UI <-->|REST| API
+  API --> Jobs
+  Jobs --> Pipe
+  Pipe --> FF
+  Pipe --> LLM
+  Pipe --> TTS
+  API -.-> Gallery
+```
+
+In development, the Vite dev server proxies `/api` to Flask; in production, Flask serves the built SPA from `frontend/dist` and handles API routes. The processing pipeline extracts frames, calls the vision model for narration text, synthesizes speech, then muxes audio and burns subtitles with ffmpeg. The gallery integration is optional (see below).
+
 ## Quickstart
 
 ### Prerequisites
