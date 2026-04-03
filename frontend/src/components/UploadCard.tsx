@@ -120,16 +120,9 @@ export default function UploadCard({
           </div>
         )}
 
-        <div className="border-t border-border" />
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="context-new" className="text-sm font-medium text-foreground">
-            Plot or character context <span className="text-muted-foreground font-normal">(optional)</span>
-          </label>
-          <Textarea id="context-new" placeholder='e.g. "My cat Mr. Whiskers stalking a laser pointer..."'
-            value={context} onChange={(e) => setContext(e.target.value)} rows={3} className="resize-none text-sm" />
-          <p className="text-xs text-muted-foreground">Names, locations, or backstory — anything that adds flavor.</p>
-        </div>
+        <Textarea id="context-new" aria-label="Plot or character context (optional)"
+          placeholder='(Optional) The audacious attempt of a cockatoo to outdo Harry Styles.'
+          value={context} onChange={(e) => setContext(e.target.value)} rows={3} className="resize-none text-sm" />
 
         {error && <div className="text-xs text-destructive bg-destructive/8 rounded-lg px-3 py-2.5">{error}</div>}
 
