@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Logo from "@/components/Logo";
+import { useIsMdUp } from "@/hooks/useMediaQuery";
 import { type GalleryItem, addToGallery, getJobStatus, getNarration, getVideoUrl, redoNarration } from "@/lib/api";
 
 export default function Result() {
@@ -17,6 +18,7 @@ export default function Result() {
   const [gallerySubmitting, setGallerySubmitting] = useState(false);
   const [galleryItem, setGalleryItem] = useState<GalleryItem | null>(null);
   const [galleryError, setGalleryError] = useState<string | null>(null);
+  const isMdUp = useIsMdUp();
 
   useEffect(() => {
     if (!jobId) return;
@@ -183,13 +185,15 @@ export default function Result() {
         </div>
 
         <div className="px-4">
-          <video
-            src={displayVideoUrl}
-            controls
-            autoPlay={!galleryItem}
-            className="w-full rounded-2xl bg-black object-contain"
-            style={{ aspectRatio: "9/16" }}
-          />
+          {!isMdUp && (
+            <video
+              src={displayVideoUrl}
+              controls
+              autoPlay={!galleryItem}
+              className="w-full rounded-2xl bg-black object-contain"
+              style={{ aspectRatio: "9/16" }}
+            />
+          )}
         </div>
 
         <div className="px-4 py-6 flex flex-col gap-3">
@@ -231,13 +235,15 @@ export default function Result() {
         {/* Right canvas — video */}
         <div className="flex-1 overflow-hidden flex items-center justify-center py-6 px-8">
           <div className="flex items-end gap-4 h-full">
-            <video
-              src={displayVideoUrl}
-              controls
-              autoPlay={!galleryItem}
-              className="h-full rounded-2xl bg-black object-contain shrink-0"
-              style={{ aspectRatio: "9/16" }}
-            />
+            {isMdUp && (
+              <video
+                src={displayVideoUrl}
+                controls
+                autoPlay={!galleryItem}
+                className="h-full rounded-2xl bg-black object-contain shrink-0"
+                style={{ aspectRatio: "9/16" }}
+              />
+            )}
           </div>
         </div>
       </div>
