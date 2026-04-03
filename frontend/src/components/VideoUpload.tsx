@@ -10,13 +10,13 @@ export default function VideoUpload() {
 
   return (
     <div className="flex flex-col md:h-screen md:flex-row md:overflow-hidden">
-      <div ref={heroRef} className="md:w-[380px] shrink-0 flex flex-col px-8 py-8 md:overflow-y-auto">
+      <div ref={heroRef} className="md:w-[440px] shrink-0 flex flex-col px-8 py-8 md:overflow-y-auto">
         <div className="flex items-center justify-between mb-8">
           <Link to="/" className="no-underline">
             <Logo />
           </Link>
         </div>
-        <div className="flex-1 flex items-center">
+        <div className="flex-1 flex items-center justify-center">
           <UploadCard />
         </div>
       </div>
