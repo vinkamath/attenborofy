@@ -15,8 +15,6 @@ export interface JobStatus {
 
 export interface GalleryItem {
   id?: string;
-  title: string;
-  description: string;
   video_url: string;
   thumbnail_url: string;
   created_at?: string;
@@ -104,13 +102,12 @@ export async function getGallery(): Promise<GalleryItem[]> {
 }
 
 export async function addToGallery(
-  jobId: string,
-  title: string
+  jobId: string
 ): Promise<GalleryItem> {
   const res = await fetch("/api/gallery", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ job_id: jobId, title }),
+    body: JSON.stringify({ job_id: jobId }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({ error: "Failed to add to gallery" }));

@@ -53,10 +53,6 @@ export default function HomeGallery() {
                 mediaClassName="w-full h-full object-contain rounded-2xl"
                 style={{ aspectRatio: "9/16" }}
               />
-              <div className="pb-2 hidden lg:block lg:w-44 xl:w-56 2xl:w-64">
-                <p className="text-sm font-semibold text-foreground mb-1">{item.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
-              </div>
             </div>
           </div>
         ))}
@@ -74,10 +70,6 @@ export default function HomeGallery() {
               mediaClassName="w-full h-full object-contain rounded-2xl"
               style={{ aspectRatio: "9/16" }}
             />
-            <div className="px-1">
-              <p className="text-sm font-semibold text-foreground">{item.title}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
-            </div>
           </div>
         ))}
       </div>
