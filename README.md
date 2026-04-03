@@ -25,17 +25,40 @@ cp .env.example .env
 # Install backend dependencies
 cd backend && uv sync && cd ..
 
-# Install frontend dependencies and build
-cd frontend && npm install && npm run build && cd ..
+# Install frontend dependencies
+cd frontend && npm install && cd ..
 ```
 
-### Run
+### Run (production-style)
+
+Build the frontend, then start Flask; it serves the built UI from `frontend/dist`.
 
 ```bash
+cd frontend && npm run build && cd ..
 cd backend && uv run python app.py
 ```
 
 Open [http://localhost:5001](http://localhost:5001) in your browser.
+
+### Development
+
+For hot reload on the UI, run the backend and Vite together (Vite proxies `/api` to port 5001):
+
+```bash
+# Terminal 1 — from repo root
+cd backend && uv run python app.py
+
+# Terminal 2
+cd frontend && npm run dev
+```
+
+Use the URL Vite prints (typically [http://localhost:5173](http://localhost:5173)).
+
+### Tests
+
+```bash
+cd backend && uv run pytest
+```
 
 ## How It Works
 
@@ -49,19 +72,25 @@ Open [http://localhost:5001](http://localhost:5001) in your browser.
 
 The app ships with a paid ElevenLabs voice clone in `backend/config.json` that closely resembles Sir David Attenborough. **FREE users won't have access to this voice.**
 
-The `.env.example` file includes `ELEVENLABS_VOICE_ID` set to "George" (`JBFqnCBsd6RMkjVDRZzb`), a free built-in British male voice — the closest free alternative. When this env var is set, it overrides the voice in `config.json`.
+`.env.example` documents an optional `ELEVENLABS_VOICE_ID` for "George" (`JBFqnCBsd6RMkjVDRZzb`), a free built-in British male voice — uncomment that line in your `.env` to use it. When set, it overrides the voice in `config.json`.
 
 To use a different voice, replace the `ELEVENLABS_VOICE_ID` value in your `.env` with any ElevenLabs voice ID.
+
+## Optional: community gallery
+
+Uncomment and set `AZURE_STORAGE_CONNECTION_STRING` and `AZURE_STORAGE_CONTAINER` in `.env` to enable uploading finished videos to a gallery (see `gallery_store.py`).
 
 ## Project Structure
 
 ```
 backend/
-  app.py            # Flask API server
-  pipeline.py       # Video processing pipeline (frames → narration → TTS → compose)
+  app.py            # Flask API + static serving of frontend/dist
+  pipeline.py       # Video processing (frames → narration → TTS → compose)
   app_config.py     # Loads config.json
   config.json       # Voice ID, TTS tuning, video duration limits
+  required_env.py   # Validates .env against .env.example
   jobs.py           # Background job management
+  gallery_store.py  # Optional Azure Blob gallery
 frontend/
   src/              # React + TypeScript (Vite)
 ```
