@@ -8,7 +8,11 @@ import { getPublicAppConfig, uploadVideo } from "@/lib/api";
 const DEFAULT_LIMITS = { min: 0, max: 60 };
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/x-matroska"];
 
-export default function UploadCard() {
+export default function UploadCard({
+  onUploadSuccess,
+}: {
+  onUploadSuccess?: (jobId: string) => void;
+} = {}) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -64,7 +68,11 @@ export default function UploadCard() {
     setError(null);
     try {
       const result = await uploadVideo(file, context, setUploadProgress);
-      navigate(`/processing/${result.job_id}`);
+      if (onUploadSuccess) {
+        onUploadSuccess(result.job_id);
+      } else {
+        navigate(`/processing/${result.job_id}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
       setUploading(false);

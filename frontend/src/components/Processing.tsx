@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import Logo from "@/components/Logo";
 import HomeGallery from "@/components/HomeGallery";
 import { getJobStatus } from "@/lib/api";
+import { PROCESSING_STEPS, getStepIndex } from "@/lib/processing-steps";
 
 const QUOTES = [
   "I once arm-wrestled a gorilla in Rwanda. We don't talk about who won, but I will say he hasn't returned my calls.",
@@ -12,22 +13,6 @@ const QUOTES = [
   "My doctor says I need to stop licking frogs. I say my doctor needs to stop being a coward.",
   "I can communicate with exactly one species of beetle, but he's incredibly boring so I never do.",
 ];
-
-const STEPS = [
-  { key: "Validating", label: "Checking if Sir David would approve" },
-  { key: "Analyzing", label: "Studying the footage intently" },
-  { key: "Writing", label: "Calling Sir David Attenborough" },
-  { key: "Generating", label: "Recording the telephone conversation" },
-  { key: "Creating", label: "Deciphering what he said through the static" },
-  { key: "Composing", label: "Posting the final tape via Royal Mail" },
-];
-
-function getStepIndex(progress: string): number {
-  for (let i = STEPS.length - 1; i >= 0; i--) {
-    if (progress.includes(STEPS[i].key)) return i;
-  }
-  return -1;
-}
 
 export default function Processing() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -97,7 +82,7 @@ export default function Processing() {
               </div>
 
               <div className="flex flex-col gap-2">
-                {STEPS.map((step, i) => (
+                {PROCESSING_STEPS.map((step, i) => (
                   <div
                     key={step.key}
                     className={`flex items-center gap-2.5 text-xs transition-colors ${
