@@ -5,12 +5,12 @@ import HomeGallery from "@/components/HomeGallery";
 import { getJobStatus } from "@/lib/api";
 
 const QUOTES = [
-  "No one will protect what they don't care about; and no one will care about what they have never experienced.",
-  "The natural world is full of extraordinary animals doing extraordinary things.",
-  "It seems to me that the natural world is the greatest source of excitement.",
-  "An understanding of the natural world is a source of not only great curiosity, but great fulfillment.",
-  "The question is, are we happy to suppose that our grandchildren may never be able to see an elephant except in a picture book?",
-  "People are not going to care about animal conservation unless they think that animals are worthwhile.",
+  "I once arm-wrestled a gorilla in Rwanda. We don't talk about who won, but I will say he hasn't returned my calls.",
+  "The BBC pays me exclusively in marmalade. I have not questioned this arrangement.",
+  "Every Tuesday at 3pm I scream into a conch shell. It is not for the documentary. It is personal.",
+  "I invented the concept of 'outside.' Before me, everyone simply stayed indoors and guessed what birds looked like.",
+  "My doctor says I need to stop licking frogs. I say my doctor needs to stop being a coward.",
+  "I can communicate with exactly one species of beetle, but he's incredibly boring so I never do.",
 ];
 
 const STEPS = [
