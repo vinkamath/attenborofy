@@ -24,6 +24,10 @@ export default function UploadCard({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [durationLimits, setDurationLimits] = useState(DEFAULT_LIMITS);
+  const [clipStart, setClipStart] = useState(0);
+  const [clipEnd, setClipEnd] = useState(0);
+
+  const needsClipping = duration !== null && duration > durationLimits.max;
 
   useEffect(() => {
     getPublicAppConfig()
@@ -45,10 +49,13 @@ export default function UploadCard({
       URL.revokeObjectURL(url);
       const d = video.duration;
       if (minSec > 0 && d < minSec) { setError(`Video is ${Math.round(d)}s. Minimum is ${minSec}s.`); return; }
-      if (d > maxSec) { setError(`Video is ${Math.round(d)}s. Maximum is ${maxSec}s.`); return; }
-      setDuration(Math.round(d));
+      setDuration(d);
       setFile(f);
       setPreview(URL.createObjectURL(f));
+      if (d > maxSec) {
+        setClipStart(0);
+        setClipEnd(maxSec);
+      }
     };
     video.onerror = () => { URL.revokeObjectURL(url); setError("Could not read video file."); };
     video.src = url;
@@ -67,7 +74,8 @@ export default function UploadCard({
     setUploading(true);
     setError(null);
     try {
-      const result = await uploadVideo(file, context, setUploadProgress);
+      const clip = needsClipping ? { start: clipStart, end: clipEnd } : undefined;
+      const result = await uploadVideo(file, context, setUploadProgress, clip);
       if (onUploadSuccess) {
         onUploadSuccess(result.job_id);
       } else {
@@ -81,6 +89,7 @@ export default function UploadCard({
 
   const clearFile = () => {
     setFile(null); setPreview(null); setDuration(null);
+    setClipStart(0); setClipEnd(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -114,9 +123,57 @@ export default function UploadCard({
           <div className="space-y-2">
             {preview && <video src={preview} controls className="w-full rounded-xl max-h-48 object-contain bg-black" />}
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="truncate max-w-[160px]">{file.name} · {duration}s · {(file.size / 1024 / 1024).toFixed(1)}MB</span>
+              <span className="truncate max-w-[160px]">
+                {file.name} · {needsClipping ? `${clipStart.toFixed(1)}–${clipEnd.toFixed(1)}s` : `${Math.round(duration!)}s`} · {(file.size / 1024 / 1024).toFixed(1)}MB
+              </span>
               <button type="button" onClick={clearFile} className="text-muted-foreground hover:text-foreground transition-colors ml-2 shrink-0">Remove</button>
             </div>
+            {needsClipping && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 space-y-3">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                  Video is {Math.round(duration!)}s — select up to {durationLimits.max}s to use:
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-10 shrink-0">Start</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration! - (durationLimits.min || 1)}
+                      step={0.1}
+                      value={clipStart}
+                      onChange={(e) => {
+                        const s = parseFloat(e.target.value);
+                        setClipStart(s);
+                        if (clipEnd - s > durationLimits.max) setClipEnd(s + durationLimits.max);
+                        else if (clipEnd - s < (durationLimits.min || 1)) setClipEnd(Math.min(duration!, s + (durationLimits.min || 1)));
+                      }}
+                      className="flex-1 accent-amber-500"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{clipStart.toFixed(1)}s</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-10 shrink-0">End</span>
+                    <input
+                      type="range"
+                      min={durationLimits.min || 1}
+                      max={duration!}
+                      step={0.1}
+                      value={clipEnd}
+                      onChange={(e) => {
+                        const end = parseFloat(e.target.value);
+                        setClipEnd(end);
+                        if (end - clipStart > durationLimits.max) setClipStart(end - durationLimits.max);
+                        else if (end - clipStart < (durationLimits.min || 1)) setClipStart(Math.max(0, end - (durationLimits.min || 1)));
+                      }}
+                      className="flex-1 accent-amber-500"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{clipEnd.toFixed(1)}s</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">Clip duration: {(clipEnd - clipStart).toFixed(1)}s</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -133,7 +190,7 @@ export default function UploadCard({
           </div>
         )}
 
-        <Button type="submit" className="w-full" size="lg" disabled={!file || uploading}>
+        <Button type="submit" className="w-full" size="lg" disabled={!file || uploading || (needsClipping && clipEnd - clipStart > durationLimits.max)}>
           {uploading ? "Uploading…" : "Narrate this video"}
         </Button>
       </form>

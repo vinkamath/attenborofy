@@ -35,12 +35,17 @@ export async function getPublicAppConfig(): Promise<PublicAppConfig> {
 export async function uploadVideo(
   file: File,
   context: string,
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number) => void,
+  clip?: { start: number; end: number }
 ): Promise<UploadResponse> {
   return new Promise((resolve, reject) => {
     const formData = new FormData();
     formData.append("video", file);
     formData.append("context", context);
+    if (clip) {
+      formData.append("clip_start", String(clip.start));
+      formData.append("clip_end", String(clip.end));
+    }
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload");

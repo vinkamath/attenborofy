@@ -84,6 +84,15 @@ def upload():
 
     user_context = request.form.get("context", "")
 
+    clip_start = request.form.get("clip_start", type=float)
+    clip_end = request.form.get("clip_end", type=float)
+    # Validate clip params if provided
+    if (clip_start is None) != (clip_end is None):
+        return jsonify({"error": "Both clip_start and clip_end must be provided together"}), 400
+    if clip_start is not None and clip_end is not None:
+        if clip_start < 0 or clip_end <= clip_start:
+            return jsonify({"error": "Invalid clip range"}), 400
+
     # Save uploaded video to temp
     ext = file.filename.rsplit(".", 1)[1].lower()
     video_id = str(uuid.uuid4())
@@ -94,14 +103,15 @@ def upload():
     # Create and start job
     job_id = job_store.create()
     logger.info(
-        "Upload accepted: job_id=%s file='%s' ext=%s size=%.2fMB context_chars=%s",
+        "Upload accepted: job_id=%s file='%s' ext=%s size=%.2fMB context_chars=%s clip=%s",
         job_id,
         secure_filename(file.filename),
         ext,
         size_mb,
         len(user_context),
+        f"{clip_start:.2f}–{clip_end:.2f}s" if clip_start is not None else "none",
     )
-    start_job(job_store, job_id, video_path, user_context)
+    start_job(job_store, job_id, video_path, user_context, clip_start=clip_start, clip_end=clip_end)
     logger.info("Background job started: job_id=%s", job_id)
     logger.info(
         "Upload request complete: job_id=%s elapsed=%.3fs",

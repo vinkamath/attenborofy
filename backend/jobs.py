@@ -83,6 +83,8 @@ def start_job(
     video_path: str,
     user_context: str,
     reuse_artifacts: dict | None = None,
+    clip_start: float | None = None,
+    clip_end: float | None = None,
 ) -> None:
     """Start a processing job in a background thread."""
     from pipeline import process_video
@@ -94,6 +96,8 @@ def start_job(
             user_context,
             job_store,
             reuse_artifacts=reuse_artifacts,
+            clip_start=clip_start,
+            clip_end=clip_end,
         )
 
     thread = threading.Thread(target=_run, daemon=True)
