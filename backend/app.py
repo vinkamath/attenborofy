@@ -54,14 +54,16 @@ def public_config():
     """Non-secret limits for the web client (voice_id stays server-side only)."""
     cfg = load_config()
     logger.info(
-        "Serving public config (min=%ss, max=%ss)",
+        "Serving public config (min=%ss, max=%ss, max_size=%sMB)",
         cfg.video_min_duration_seconds,
         cfg.video_max_duration_seconds,
+        cfg.video_max_file_size_mb,
     )
     return jsonify(
         {
             "video_min_duration_seconds": cfg.video_min_duration_seconds,
             "video_max_duration_seconds": cfg.video_max_duration_seconds,
+            "video_max_file_size_mb": cfg.video_max_file_size_mb,
         }
     )
 
@@ -99,6 +101,11 @@ def upload():
     video_path = os.path.join(tempfile.gettempdir(), f"attenborofy_upload_{video_id}.{ext}")
     file.save(video_path)
     size_mb = os.path.getsize(video_path) / (1024 * 1024)
+    cfg = load_config()
+    if size_mb > cfg.video_max_file_size_mb:
+        os.remove(video_path)
+        logger.info("Upload rejected: file too large (%.2fMB > %sMB)", size_mb, cfg.video_max_file_size_mb)
+        return jsonify({"error": f"File is {size_mb:.0f}MB. Maximum is {cfg.video_max_file_size_mb:g}MB."}), 413
 
     # Create and start job
     job_id = job_store.create()

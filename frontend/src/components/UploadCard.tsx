@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { getPublicAppConfig, uploadVideo } from "@/lib/api";
 
-const DEFAULT_LIMITS = { min: 0, max: 60 };
+const DEFAULT_LIMITS = { min: 0, max: 60, maxSizeMb: 500 };
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/x-matroska"];
 
 export default function UploadCard({
@@ -31,7 +31,7 @@ export default function UploadCard({
 
   useEffect(() => {
     getPublicAppConfig()
-      .then((c) => setDurationLimits({ min: c.video_min_duration_seconds, max: c.video_max_duration_seconds }))
+      .then((c) => setDurationLimits({ min: c.video_min_duration_seconds, max: c.video_max_duration_seconds, maxSizeMb: c.video_max_file_size_mb ?? 500 }))
       .catch(() => {});
   }, []);
 
@@ -41,7 +41,12 @@ export default function UploadCard({
       setError("Please upload a video file (mp4, mov, webm, avi, mkv).");
       return;
     }
-    const { min: minSec, max: maxSec } = durationLimits;
+    const { min: minSec, max: maxSec, maxSizeMb } = durationLimits;
+    const fileSizeMb = f.size / (1024 * 1024);
+    if (fileSizeMb > maxSizeMb) {
+      setError(`File is ${fileSizeMb.toFixed(0)}MB. Maximum is ${maxSizeMb}MB.`);
+      return;
+    }
     const url = URL.createObjectURL(f);
     const video = document.createElement("video");
     video.preload = "metadata";
@@ -115,7 +120,7 @@ export default function UploadCard({
               <span className="md:hidden">Tap to upload video</span>
               <span className="hidden md:inline">Drop your video here</span>
             </p>
-            <p className="text-xs text-muted-foreground">MP4, MOV, WebM · {durationLimits.min}–{durationLimits.max}s</p>
+            <p className="text-xs text-muted-foreground">MP4, MOV, WebM · {durationLimits.min}–{durationLimits.max}s · max {durationLimits.maxSizeMb}MB</p>
             <input ref={fileInputRef} type="file" accept="video/*" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) validateAndSetFile(f); }} />
           </div>
