@@ -15,6 +15,7 @@ export default function UploadCard({
 } = {}) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
@@ -126,7 +127,14 @@ export default function UploadCard({
           </div>
         ) : (
           <div className="space-y-2">
-            {preview && <video src={preview} controls className="w-full rounded-xl max-h-48 object-contain bg-black" />}
+            {preview && <video ref={videoRef} src={preview} controls className="w-full rounded-xl max-h-48 object-contain bg-black"
+              onTimeUpdate={() => {
+                if (needsClipping && videoRef.current && videoRef.current.currentTime >= clipEnd) {
+                  videoRef.current.pause();
+                  videoRef.current.currentTime = clipEnd;
+                }
+              }}
+            />}
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span className="truncate max-w-[160px]">
                 {file.name} · {needsClipping ? `${clipStart.toFixed(1)}–${clipEnd.toFixed(1)}s` : `${Math.round(duration!)}s`} · {(file.size / 1024 / 1024).toFixed(1)}MB
@@ -152,6 +160,7 @@ export default function UploadCard({
                         setClipStart(s);
                         if (clipEnd - s > durationLimits.max) setClipEnd(s + durationLimits.max);
                         else if (clipEnd - s < (durationLimits.min || 1)) setClipEnd(Math.min(duration!, s + (durationLimits.min || 1)));
+                        if (videoRef.current) videoRef.current.currentTime = s;
                       }}
                       className="flex-1 accent-primary-soft"
                     />
@@ -170,6 +179,7 @@ export default function UploadCard({
                         setClipEnd(end);
                         if (end - clipStart > durationLimits.max) setClipStart(end - durationLimits.max);
                         else if (end - clipStart < (durationLimits.min || 1)) setClipStart(Math.max(0, end - (durationLimits.min || 1)));
+                        if (videoRef.current) videoRef.current.currentTime = end;
                       }}
                       className="flex-1 accent-primary-soft"
                     />
