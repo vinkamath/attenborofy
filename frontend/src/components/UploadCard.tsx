@@ -134,8 +134,8 @@ export default function UploadCard({
               <button type="button" onClick={clearFile} className="text-muted-foreground hover:text-foreground transition-colors ml-2 shrink-0">Remove</button>
             </div>
             {needsClipping && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 space-y-3">
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              <div className="rounded-lg border border-border bg-primary/5 px-3 py-2.5 space-y-3">
+                <p className="text-xs font-medium text-foreground">
                   Video is {Math.round(duration!)}s — select up to {durationLimits.max}s to use:
                 </p>
                 <div className="space-y-2">
@@ -153,7 +153,7 @@ export default function UploadCard({
                         if (clipEnd - s > durationLimits.max) setClipEnd(s + durationLimits.max);
                         else if (clipEnd - s < (durationLimits.min || 1)) setClipEnd(Math.min(duration!, s + (durationLimits.min || 1)));
                       }}
-                      className="flex-1 accent-amber-500"
+                      className="flex-1 accent-primary-soft"
                     />
                     <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{clipStart.toFixed(1)}s</span>
                   </div>
@@ -171,7 +171,7 @@ export default function UploadCard({
                         if (end - clipStart > durationLimits.max) setClipStart(end - durationLimits.max);
                         else if (end - clipStart < (durationLimits.min || 1)) setClipStart(Math.max(0, end - (durationLimits.min || 1)));
                       }}
-                      className="flex-1 accent-amber-500"
+                      className="flex-1 accent-primary-soft"
                     />
                     <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{clipEnd.toFixed(1)}s</span>
                   </div>
