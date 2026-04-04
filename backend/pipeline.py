@@ -37,6 +37,25 @@ AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID") or CONFIG.voice_id
 
 
+def clip_video(input_path: str, start: float, end: float, output_path: str) -> None:
+    """Trim video to [start, end] seconds using ffmpeg stream copy."""
+    duration = end - start
+    result = subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-ss", str(start),
+            "-i", input_path,
+            "-t", str(duration),
+            "-c", "copy",
+            output_path,
+        ],
+        capture_output=True,
+        timeout=120,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg clip failed: {result.stderr.decode(errors='replace')}")
+
+
 def validate_video(path: str) -> tuple[bool, float, str]:
     """Validate video file and return (ok, duration_seconds, error_message)."""
     try:
@@ -445,6 +464,8 @@ def process_video(
     user_context: str,
     job_store,
     reuse_artifacts: dict | None = None,
+    clip_start: float | None = None,
+    clip_end: float | None = None,
 ) -> None:
     """Full processing pipeline. Updates job_store at each step."""
     try:
@@ -463,6 +484,18 @@ def process_video(
                 reuse_frames = frames_candidate
 
         job_store.update(job_id, status="processing", source_video_path=video_path, context=user_context)
+
+        # Clip video before validation if the user selected a sub-range
+        if clip_start is not None and clip_end is not None:
+            step_start = time.perf_counter()
+            job_store.update(job_id, progress="Clipping video...")
+            clipped_path = os.path.join(tempfile.gettempdir(), f"attenborofy_clip_{job_id}.mp4")
+            clip_video(video_path, clip_start, clip_end, clipped_path)
+            video_path = clipped_path
+            logger.info(
+                "Job %s clip step finished: %.2fs–%.2fs elapsed=%.3fs",
+                job_id, clip_start, clip_end, time.perf_counter() - step_start,
+            )
         if reuse_duration is not None and reuse_frames:
             duration = reuse_duration
             frames = reuse_frames

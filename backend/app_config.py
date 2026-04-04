@@ -14,6 +14,7 @@ class AppConfig:
     voice_id: str
     video_min_duration_seconds: float
     video_max_duration_seconds: float
+    video_max_file_size_mb: float
     tts_similarity_boost: float
     tts_stability: float
     tts_speed: float
@@ -36,6 +37,9 @@ def load_config(path: Path | None = None) -> AppConfig:
         raise ValueError(
             "config.json: video_max_duration_seconds must be >= video_min_duration_seconds"
         )
+    max_size_mb = float(raw.get("video_max_file_size_mb", 500))
+    if max_size_mb <= 0:
+        raise ValueError("config.json: video_max_file_size_mb must be positive")
     sim = float(raw["tts_similarity_boost"])
     stab = float(raw["tts_stability"])
     spd = float(raw["tts_speed"])
@@ -52,6 +56,7 @@ def load_config(path: Path | None = None) -> AppConfig:
         voice_id=voice_id,
         video_min_duration_seconds=vmin,
         video_max_duration_seconds=vmax,
+        video_max_file_size_mb=max_size_mb,
         tts_similarity_boost=sim,
         tts_stability=stab,
         tts_speed=spd,

@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { getPublicAppConfig, uploadVideo } from "@/lib/api";
 
-const DEFAULT_LIMITS = { min: 0, max: 60 };
+const DEFAULT_LIMITS = { min: 0, max: 60, maxSizeMb: 500 };
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/x-matroska"];
 
 export default function UploadCard({
@@ -15,6 +15,7 @@ export default function UploadCard({
 } = {}) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
@@ -24,10 +25,14 @@ export default function UploadCard({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [durationLimits, setDurationLimits] = useState(DEFAULT_LIMITS);
+  const [clipStart, setClipStart] = useState(0);
+  const [clipEnd, setClipEnd] = useState(0);
+
+  const needsClipping = duration !== null && duration > durationLimits.max;
 
   useEffect(() => {
     getPublicAppConfig()
-      .then((c) => setDurationLimits({ min: c.video_min_duration_seconds, max: c.video_max_duration_seconds }))
+      .then((c) => setDurationLimits({ min: c.video_min_duration_seconds, max: c.video_max_duration_seconds, maxSizeMb: c.video_max_file_size_mb ?? 500 }))
       .catch(() => {});
   }, []);
 
@@ -37,7 +42,12 @@ export default function UploadCard({
       setError("Please upload a video file (mp4, mov, webm, avi, mkv).");
       return;
     }
-    const { min: minSec, max: maxSec } = durationLimits;
+    const { min: minSec, max: maxSec, maxSizeMb } = durationLimits;
+    const fileSizeMb = f.size / (1024 * 1024);
+    if (fileSizeMb > maxSizeMb) {
+      setError(`File is ${fileSizeMb.toFixed(0)}MB. Maximum is ${maxSizeMb}MB.`);
+      return;
+    }
     const url = URL.createObjectURL(f);
     const video = document.createElement("video");
     video.preload = "metadata";
@@ -45,10 +55,13 @@ export default function UploadCard({
       URL.revokeObjectURL(url);
       const d = video.duration;
       if (minSec > 0 && d < minSec) { setError(`Video is ${Math.round(d)}s. Minimum is ${minSec}s.`); return; }
-      if (d > maxSec) { setError(`Video is ${Math.round(d)}s. Maximum is ${maxSec}s.`); return; }
-      setDuration(Math.round(d));
+      setDuration(d);
       setFile(f);
       setPreview(URL.createObjectURL(f));
+      if (d > maxSec) {
+        setClipStart(0);
+        setClipEnd(maxSec);
+      }
     };
     video.onerror = () => { URL.revokeObjectURL(url); setError("Could not read video file."); };
     video.src = url;
@@ -67,7 +80,8 @@ export default function UploadCard({
     setUploading(true);
     setError(null);
     try {
-      const result = await uploadVideo(file, context, setUploadProgress);
+      const clip = needsClipping ? { start: clipStart, end: clipEnd } : undefined;
+      const result = await uploadVideo(file, context, setUploadProgress, clip);
       if (onUploadSuccess) {
         onUploadSuccess(result.job_id);
       } else {
@@ -81,6 +95,7 @@ export default function UploadCard({
 
   const clearFile = () => {
     setFile(null); setPreview(null); setDuration(null);
+    setClipStart(0); setClipEnd(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -106,17 +121,74 @@ export default function UploadCard({
               <span className="md:hidden">Tap to upload video</span>
               <span className="hidden md:inline">Drop your video here</span>
             </p>
-            <p className="text-xs text-muted-foreground">MP4, MOV, WebM · {durationLimits.min}–{durationLimits.max}s</p>
+            <p className="text-xs text-muted-foreground">MP4, MOV, WebM · {durationLimits.min}–{durationLimits.max}s · max {durationLimits.maxSizeMb}MB</p>
             <input ref={fileInputRef} type="file" accept="video/*" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) validateAndSetFile(f); }} />
           </div>
         ) : (
           <div className="space-y-2">
-            {preview && <video src={preview} controls className="w-full rounded-xl max-h-48 object-contain bg-black" />}
+            {preview && <video ref={videoRef} src={preview} controls className="w-full rounded-xl max-h-48 object-contain bg-black"
+              onTimeUpdate={() => {
+                if (needsClipping && videoRef.current && videoRef.current.currentTime >= clipEnd) {
+                  videoRef.current.pause();
+                  videoRef.current.currentTime = clipEnd;
+                }
+              }}
+            />}
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="truncate max-w-[160px]">{file.name} · {duration}s · {(file.size / 1024 / 1024).toFixed(1)}MB</span>
+              <span className="truncate max-w-[160px]">
+                {file.name} · {needsClipping ? `${clipStart.toFixed(1)}–${clipEnd.toFixed(1)}s` : `${Math.round(duration!)}s`} · {(file.size / 1024 / 1024).toFixed(1)}MB
+              </span>
               <button type="button" onClick={clearFile} className="text-muted-foreground hover:text-foreground transition-colors ml-2 shrink-0">Remove</button>
             </div>
+            {needsClipping && (
+              <div className="rounded-lg border border-border bg-primary/5 px-3 py-2.5 space-y-3">
+                <p className="text-xs font-medium text-foreground">
+                  Video is {Math.round(duration!)}s — select up to {durationLimits.max}s to use:
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-10 shrink-0">Start</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration! - (durationLimits.min || 1)}
+                      step={0.1}
+                      value={clipStart}
+                      onChange={(e) => {
+                        const s = parseFloat(e.target.value);
+                        setClipStart(s);
+                        if (clipEnd - s > durationLimits.max) setClipEnd(s + durationLimits.max);
+                        else if (clipEnd - s < (durationLimits.min || 1)) setClipEnd(Math.min(duration!, s + (durationLimits.min || 1)));
+                        if (videoRef.current) videoRef.current.currentTime = s;
+                      }}
+                      className="flex-1 accent-primary-soft"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{clipStart.toFixed(1)}s</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-10 shrink-0">End</span>
+                    <input
+                      type="range"
+                      min={durationLimits.min || 1}
+                      max={duration!}
+                      step={0.1}
+                      value={clipEnd}
+                      onChange={(e) => {
+                        const end = parseFloat(e.target.value);
+                        setClipEnd(end);
+                        if (end - clipStart > durationLimits.max) setClipStart(end - durationLimits.max);
+                        else if (end - clipStart < (durationLimits.min || 1)) setClipStart(Math.max(0, end - (durationLimits.min || 1)));
+                        if (videoRef.current) videoRef.current.currentTime = end;
+                      }}
+                      className="flex-1 accent-primary-soft"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right shrink-0">{clipEnd.toFixed(1)}s</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">Clip duration: {(clipEnd - clipStart).toFixed(1)}s</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -133,7 +205,7 @@ export default function UploadCard({
           </div>
         )}
 
-        <Button type="submit" className="w-full" size="lg" disabled={!file || uploading}>
+        <Button type="submit" className="w-full" size="lg" disabled={!file || uploading || (needsClipping && clipEnd - clipStart > durationLimits.max)}>
           {uploading ? "Uploading…" : "Narrate this video"}
         </Button>
       </form>

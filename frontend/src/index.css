@@ -32,6 +32,7 @@
     --color-secondary-foreground: var(--secondary-foreground);
     --color-secondary: var(--secondary);
     --color-primary-foreground: var(--primary-foreground);
+    --color-primary-soft: var(--primary-soft);
     --color-primary: var(--primary);
     --color-popover-foreground: var(--popover-foreground);
     --color-popover: var(--popover);
@@ -60,6 +61,8 @@
     --popover-foreground: oklch(0.13 0.01 265);
     /* Purple-violet primary action */
     --primary: #136DFF;
+    /* design.md disabled / lighter blue — between primary and bg-primary/5 */
+    --primary-soft: #5494F7;
     --primary-foreground: oklch(1 0 0);
     --secondary: oklch(0.94 0.018 265);
     --secondary-foreground: oklch(0.13 0.01 265);
@@ -97,6 +100,7 @@
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
     --primary: oklch(0.922 0 0);
+    --primary-soft: oklch(0.62 0.14 264);
     --primary-foreground: oklch(0.205 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
